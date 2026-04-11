@@ -5,19 +5,22 @@ const AdminDashboard = () => {
   const [reservations, setReservations] = useState([]);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('reservations') || '[]');
-    setReservations(data);
+    const fetchData = async () => {
+      try {
+        const response = await fetch('http://child-api/api/reservations');
+        const data = await response.json();
+        setReservations(data);
+      } catch (error) {
+        console.error("데이터 로드 실패:", error);
+      }
+    };
+    fetchData();
   }, []);
 
-  // 시간대순 정렬 로직
-  const sortedReservations = useMemo(() => {
-    return [...reservations].sort((a, b) => a.time.localeCompare(b.time));
-  }, [reservations]);
-
-  const toggleNoShow = (id) => {
-    const updated = reservations.map(r => r.id === id ? { ...r, status: r.status === 'noshow' ? 'normal' : 'noshow' } : r);
-    setReservations(updated);
-    localStorage.setItem('reservations', JSON.stringify(updated));
+  const toggleNoShow = async (id) => {
+    await fetch(`http://child-api/api/reservations/${id}/toggle`, { method: 'PATCH' });
+    // 화면 새로고침 로직 추가
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, status: r.status === 'noshow' ? 'normal' : 'noshow' } : r));
   };
 
   const ageGroups = ["0~8세", "9~13세", "14~16세", "17~19세", "20~24세", "24세 이상"];

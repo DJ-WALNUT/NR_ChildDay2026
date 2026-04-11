@@ -13,16 +13,27 @@ const CheckReservation = () => {
     }
   }, [location]);
 
-  const handleCheck = (e) => {
+  const handleCheck = async (e) => { // async 추가
     e.preventDefault();
-    const data = JSON.parse(localStorage.getItem('reservations') || '[]');
-    const cleanPhone = search.phone.replace(/-/g, '');
-    const found = data.find(r => r.name === search.name && r.phone.replace(/-/g, '') === cleanPhone);
-    if (found) {
-      setResult(found);
-    } else {
-      alert("신청 정보를 찾을 수 없습니다.");
-      setResult(null);
+    const cleanPhone = search.phone.replace(/[^0-9]/g, ''); // 숫자만 추출
+
+    try {
+      // 모든 예약을 가져온 후 필터링하거나, 특정 예약만 찾는 API가 있다면 호출
+      const response = await fetch('http://child-api/api/reservations');
+      const allReservations = await response.json();
+    
+      const found = allReservations.find(r => 
+        r.name === search.name && r.phone.replace(/[^0-9]/g, '') === cleanPhone
+      );
+
+      if (found) {
+        setResult(found);
+      } else {
+        alert("신청 정보를 찾을 수 없습니다.");
+        setResult(null);
+      }
+    } catch (error) {
+      alert("서버 연결에 실패했습니다.");
     }
   };
 

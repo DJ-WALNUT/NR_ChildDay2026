@@ -13,10 +13,8 @@ const UserForm = () => {
     fetch('/terms.md').then(res => res.text()).then(setTerms);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // 1. 약관 동의 체크
     if (!agreed) return alert("필수 약관에 동의해 주세요.");
 
     // 2. 전화번호 11자리 유효성 검사
@@ -25,15 +23,23 @@ const UserForm = () => {
       return alert("전화번호 11자리를 정확히 입력해 주세요. (예: 01012345678)");
     }
 
-    const existing = JSON.parse(localStorage.getItem('reservations') || '[]');
-    const newReservation = { ...formData, phone: cleanPhone, id: Date.now(), status: 'normal' };
-    
-    localStorage.setItem('reservations', JSON.stringify([...existing, newReservation]));
-    
-    alert("신청이 정상적으로 접수되었습니다.");
+    try {
+      const response = await fetch('http://child-api/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
 
-    // 3. 신청 확인 페이지로 자동 이동하며 데이터 전달
-    navigate('/check', { state: { autoCheck: newReservation } }); 
+      if (response.ok) {
+        const savedData = await response.json();
+        alert("신청이 정상적으로 접수되었습니다.");
+        navigate('/check', { state: { autoCheck: { ...formData, id: savedData.id } } });
+      }
+    } catch (error) {
+      alert("서버 연결에 실패했습니다.");
+    }
+
+    
   };
 
   const inputStyle = "w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-base font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-400";
