@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { API_BASE_URL } from '../config';
 import * as XLSX from 'xlsx';
 
 const AdminDashboard = () => {
@@ -7,7 +8,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://child-api/api/reservations');
+        const response = await fetch(`${API_BASE_URL}/api/reservations`);
         const data = await response.json();
         setReservations(data);
       } catch (error) {
@@ -18,13 +19,18 @@ const AdminDashboard = () => {
   }, []);
 
   const toggleNoShow = async (id) => {
-    await fetch(`http://child-api/api/reservations/${id}/toggle`, { method: 'PATCH' });
+    await fetch(`${API_BASE_URL}/api/reservations/${id}/toggle`, { method: 'PATCH' });
     // 화면 새로고침 로직 추가
     setReservations(prev => prev.map(r => r.id === id ? { ...r, status: r.status === 'noshow' ? 'normal' : 'noshow' } : r));
   };
 
   const ageGroups = ["0~8세", "9~13세", "14~16세", "17~19세", "20~24세", "24세 이상"];
   
+  // reservations 상태를 기준으로 시간순 정렬된 데이터를 미리 생성
+  const sortedReservations = useMemo(() => {
+    return [...reservations].sort((a, b) => a.time.localeCompare(b.time));
+  }, [reservations]);
+
   // 통계 계산 로직
   const stats = useMemo(() => ageGroups.map(group => ({
     group,
@@ -42,11 +48,17 @@ const AdminDashboard = () => {
     XLSX.writeFile(wb, `최종명단_${new Date().toLocaleDateString()}.xlsx`);
   };
 
-  const clearAllData = () => {
-    if (window.confirm("⚠️ 정말로 모든 예약 데이터를 삭제하시겠습니까? 복구할 수 없습니다.")) {
-      localStorage.removeItem('reservations'); // 저장소에서 삭제
-      setReservations([]); // 현재 화면 상태 초기화
-      alert("모든 데이터가 삭제되었습니다.");
+  const clearAllData = async () => {
+    if (window.confirm("⚠️ 서버의 모든 데이터를 영구 삭제하시겠습니까?")) {
+      try {
+        const response = await fetch('${API_BASE_URL}/api/reservations/clear', { method: 'DELETE' });
+        if (response.ok) {
+          setReservations([]);
+          alert("서버 데이터가 초기화되었습니다.");
+        }
+      } catch (error) {
+        alert("삭제 실패: 서버 연결을 확인하세요.");
+      }
     }
   };
 

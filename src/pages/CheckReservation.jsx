@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'; // 데이터 수신을 위해 추가
+import { API_BASE_URL } from '../config';
 
 const CheckReservation = () => {
   const location = useLocation(); // 이전 페이지에서 보낸 state 수신
@@ -19,7 +20,7 @@ const CheckReservation = () => {
 
     try {
       // 모든 예약을 가져온 후 필터링하거나, 특정 예약만 찾는 API가 있다면 호출
-      const response = await fetch('http://child-api/api/reservations');
+      const response = await fetch(`${API_BASE_URL}/api/reservations`);
       const allReservations = await response.json();
     
       const found = allReservations.find(r => 

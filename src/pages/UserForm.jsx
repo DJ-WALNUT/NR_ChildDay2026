@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // useNavigate 추가
+import { API_BASE_URL } from '../config';
 
 const UserForm = () => {
   const navigate = useNavigate(); // 페이지 이동을 위한 훅
@@ -24,7 +25,7 @@ const UserForm = () => {
     }
 
     try {
-      const response = await fetch('http://child-api/api/reservations', {
+      const response = await fetch(`${API_BASE_URL}/api/reservations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
