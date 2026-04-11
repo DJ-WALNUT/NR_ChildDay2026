@@ -52,9 +52,14 @@ const UserForm = () => {
 
       <div className="max-w-xl mx-auto my-8 p-8 bg-white rounded-[2.5rem] shadow-2xl border-t-8 border-yellow-400 relative">
         <header className="text-center mb-10">
-          <span className="inline-block bg-slate-900 text-white text-[10px] font-black px-4 py-1.5 rounded-full mb-4 tracking-[0.2em] uppercase">어린이날 나름청소년활동센터 체험부스</span>
+            <div className="rounded-xl flex items-center justify-center">
+              <img className="inline-block w-60" src="logo.png" />
+            </div>
+          <span className="inline-block bg-slate-900 text-white text-[12px] font-black px-4 py-1.5 rounded-full mt-2 mb-3 tracking-[0.2em] uppercase">
+            어린이날 체험부스
+          </span>
           <h1 className="text-4xl font-black text-slate-900 leading-tight tracking-tighter">
-            부스 이용 <span className="text-blue-600 font-extrabold">신청</span>
+            체험부스 <span className="text-blue-600 font-extrabold">신청</span>
           </h1>
         </header>
 
@@ -123,6 +128,42 @@ const UserForm = () => {
           </button>
         </form>
       </div>
+
+      <footer className="max-w-xl mx-auto px-6 py-12 text-center border-t border-slate-800">
+        <div className="flex flex-col items-center gap-6">
+          
+          {/* 기관 로고 영역 (이미지가 없다면 텍스트 로고로 대체 가능) */}
+          <div className="flex items-center gap-3">
+            <div className="w-70 rounded-xl flex items-center justify-center shadow-lg">
+              <img src="logo.png" />
+              {/*<span className="text-blue-600 font-black text-xl">N</span>*/}
+            </div>
+            {/*<span className="text-lg font-black text-white tracking-tight">나름청소년활동센터</span>*/}
+          </div>
+
+          {/* 크레딧 및 정보 */}
+          <div className="space-y-2">
+            <p className="text-slate-400 text-sm font-medium">
+              © 2026 Nareum Youth Center. All rights reserved.
+            </p>
+            <div className="flex justify-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+              <span>Created by CLUSTER</span>
+            </div>
+          </div>
+
+          {/* 추가 링크 (필요 시) */}
+          <div className="pt-4">
+            <a 
+              href="https://gmyouth.or.kr/nareum/index.do" 
+              target="_blank" 
+              rel="noreferrer"
+              className="text-[15px] font-black text-slate-500 hover:text-blue-400 transition-colors border border-slate-700 px-3 py-1 rounded-full"
+            >
+              공식 홈페이지 바로가기
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
