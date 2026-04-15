@@ -51,7 +51,7 @@ const AdminDashboard = () => {
   const clearAllData = async () => {
     if (window.confirm("⚠️ 서버의 모든 데이터를 영구 삭제하시겠습니까?")) {
       try {
-        const response = await fetch('${API_BASE_URL}/api/reservations/clear', { method: 'DELETE' });
+        const response = await fetch(`${API_BASE_URL}/api/reservations/clear`, { method: 'DELETE' });
         if (response.ok) {
           setReservations([]);
           alert("서버 데이터가 초기화되었습니다.");
@@ -59,6 +59,39 @@ const AdminDashboard = () => {
       } catch (error) {
         alert("삭제 실패: 서버 연결을 확인하세요.");
       }
+    }
+  };
+
+  // 건별 삭제 함수
+  const deleteReservation = async (id) => {
+    if (window.confirm("정말 이 신청 내역을 삭제하시겠습니까?")) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/reservations/${id}`, { 
+          method: 'DELETE' 
+        });
+        if (response.ok) {
+          setReservations(prev => prev.filter(r => r.id !== id));
+          alert("삭제되었습니다.");
+        }
+      } catch (error) {
+        alert("삭제 실패: 서버 연결을 확인하세요.");
+      }
+    }
+  };
+
+  // 체험 완료 함수
+  const markAsCompleted = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reservations/${id}/complete`, { 
+        method: 'PATCH' 
+      });
+      if (response.ok) {
+        setReservations(prev => prev.map(r => 
+          r.id === id ? { ...r, status: 'completed' } : r
+        ));
+      }
+    } catch (error) {
+      alert("상태 변경 실패");
     }
   };
 
@@ -160,10 +193,23 @@ const AdminDashboard = () => {
               </div>
             </td>
             <td className="py-5 px-4 md:py-7 md:px-10 text-slate-500 font-black whitespace-nowrap">{r.ageGroup}</td>
-            <td className="py-5 px-4 md:py-7 md:px-10 text-center whitespace-nowrap">
+            <td className="py-5 px-4 md:py-7 md:px-10 text-center whitespace-nowrap space-x-2">
+              {/* 기존 노쇼 버튼 */}
               <button onClick={() => toggleNoShow(r.id)} 
-                className={`px-5 py-2 md:px-8 md:py-3 rounded-2xl text-xs font-black transition-all shadow-md ${r.status === 'noshow' ? 'bg-slate-200 text-slate-500 shadow-none' : 'bg-red-600 text-white hover:bg-slate-900 active:scale-90'}`}>
-                {r.status === 'noshow' ? '복구' : '노쇼'}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${r.status === 'noshow' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                노쇼
+              </button>
+
+              {/* [추가] 체험 완료 버튼 */}
+              <button onClick={() => markAsCompleted(r.id)} 
+                className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${r.status === 'completed' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                체험완료
+              </button>
+
+              {/* [추가] 건별 삭제 버튼 */}
+              <button onClick={() => deleteReservation(r.id)} 
+                className="px-3 py-1.5 rounded-lg text-xs font-black uppercase bg-slate-800 text-white hover:bg-red-500 transition-all">
+                삭제
               </button>
             </td>
           </tr>

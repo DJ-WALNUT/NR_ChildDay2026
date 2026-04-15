@@ -5,10 +5,21 @@ import { API_BASE_URL } from '../config';
 const UserForm = () => {
   const navigate = useNavigate(); // 페이지 이동을 위한 훅
   const [formData, setFormData] = useState({
-    name: '', gender: '', ageGroup: '0~8세', phone: '', time: '11시 A타임'
+    name: '', 
+    gender: '', 
+    ageGroup: '0~8세', 
+    phone: '', 
+    time: ''
   });
   const [terms, setTerms] = useState("");
   const [agreed, setAgreed] = useState(false);
+
+  const timeSlots = [];
+  for (let hour = 11; hour <= 16; hour++) {
+    ['A타임', 'B타임', 'C타임'].forEach(type => {
+      timeSlots.push(`${hour}시 ${type}`);
+    });
+  }
 
   useEffect(() => {
     fetch('/terms.md').then(res => res.text()).then(setTerms);
@@ -16,31 +27,41 @@ const UserForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // 1. 기본 유효성 검사
+    if (!formData.time) return alert("희망 체험 시간을 선택해 주세요.");
+    if (!formData.gender) return alert("성별을 선택해 주세요.");
     if (!agreed) return alert("필수 약관에 동의해 주세요.");
 
-    // 2. 전화번호 11자리 유효성 검사
-    const cleanPhone = formData.phone.replace(/[^0-9]/g, ""); // 숫자만 추출
+    const cleanPhone = formData.phone.replace(/[^0-9]/g, "");
     if (cleanPhone.length !== 11) {
-      return alert("전화번호 11자리를 정확히 입력해 주세요. (예: 01012345678)");
+      return alert("전화번호 11자리를 정확히 입력해 주세요.");
     }
 
     try {
+    // 2. 서버에 신청 데이터 전송
       const response = await fetch(`${API_BASE_URL}/api/reservations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ 
+          ...formData, 
+          phone: cleanPhone // 숫자만 추출된 번호로 보냄
+        }),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        const savedData = await response.json();
+      // 성공 시
         alert("신청이 정상적으로 접수되었습니다.");
-        navigate('/check', { state: { autoCheck: { ...formData, id: savedData.id } } });
+        navigate('/check', { state: { autoCheck: { ...formData, id: result.id, phone: cleanPhone } } });
+      } else {
+      // 서버에서 전달한 에러 메시지(중복 안내 등) 출력
+        alert(result.error || "신청 중 오류가 발생했습니다.");
       }
     } catch (error) {
-      alert("서버 연결에 실패했습니다.");
+      console.error("Error:", error);
+      alert("서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
-
-    
   };
 
   const inputStyle = "w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-base font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-400";
@@ -74,25 +95,20 @@ const UserForm = () => {
           {/* ... (시간대, 이름, 성별, 연령대 입력란 동일) */}
           <div className="space-y-2">
             <label className="text-sm font-black text-slate-700 ml-1">희망 체험 시간</label>
-            <select className={`${inputStyle} font-bold`} onChange={e => setFormData({...formData, time: e.target.value})}>
-              <option value="11시 A타임">11시 A타임</option>
-              <option value="11시 B타임">11시 B타임</option>
-              <option value="11시 C타임">11시 C타임</option>
-              <option value="12시 A타임">12시 A타임</option>
-              <option value="12시 B타임">12시 B타임</option>
-              <option value="12시 C타임">12시 C타임</option>
-              <option value="13시 A타임">13시 A타임</option>
-              <option value="13시 B타임">13시 B타임</option>
-              <option value="13시 C타임">13시 C타임</option>
-              <option value="14시 A타임">14시 A타임</option>
-              <option value="14시 B타임">14시 B타임</option>
-              <option value="14시 C타임">14시 C타임</option>
-              <option value="15시 A타임">15시 A타임</option>
-              <option value="15시 B타임">15시 B타임</option>
-              <option value="15시 C타임">15시 C타임</option>
-              <option value="16시 A타임">16시 A타임</option>
-              <option value="16시 B타임">16시 B타임</option>
-              <option value="16시 C타임">16시 C타임</option>
+            <select 
+              className={`${inputStyle} font-bold`} 
+              value={formData.time} // 현재 선택된 값 바인딩
+              required // 필수 선택 설정
+              onChange={e => setFormData({...formData, time: e.target.value})}
+            >
+              <option value="" disabled hidden>시간대를 선택해주세요</option>
+    
+              {/* map을 이용한 자동 생성 */}
+              {timeSlots.map((slot) => (
+                <option key={slot} value={slot}>
+                  {slot}
+                </option>
+              ))}
             </select>
           </div>
 
