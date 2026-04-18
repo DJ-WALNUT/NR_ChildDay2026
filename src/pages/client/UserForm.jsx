@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // useNavigate 추가
-import { API_BASE_URL } from '../config';
+import { Link, useNavigate, useParams } from 'react-router-dom'; // useNavigate 추가
+import { API_BASE_URL } from '../../config';
 
 const UserForm = () => {
-  const navigate = useNavigate(); // 페이지 이동을 위한 훅
+  const { boothId } = useParams(); // URL에서 부스 ID 추출
+  const navigate = useNavigate();
+  const [boothInfo, setBoothInfo] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', 
-    gender: '', 
-    ageGroup: '0~8세', 
-    phone: '', 
-    time: ''
+    name: '', gender: '', ageGroup: '0~8세', phone: '', time: ''
   });
   const [terms, setTerms] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -22,8 +20,26 @@ const UserForm = () => {
   }
 
   useEffect(() => {
-    fetch('/terms.md').then(res => res.text()).then(setTerms);
-  }, []);
+    const loadData = async () => {
+      // 부스 정보 조회
+      const res = await fetch(`${API_BASE_URL}/api/booths`);
+      const data = await res.json();
+      const current = data.find(b => b.id === parseInt(boothId));
+      
+      // [추가] 부스가 비활성화 상태라면 접근 차단
+      if (current && !current.is_active) {
+        alert("현재 이 부스는 신청이 마감되었습니다.");
+        navigate('/');
+        return;
+      }
+      setBoothInfo(current);
+      
+      const termRes = await fetch('/terms.md');
+      const termText = await termRes.text();
+      setTerms(termText);
+    };
+    loadData();
+  }, [boothId, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,34 +49,26 @@ const UserForm = () => {
     if (!agreed) return alert("필수 약관에 동의해 주세요.");
 
     const cleanPhone = formData.phone.replace(/[^0-9]/g, "");
-    if (cleanPhone.length !== 11) {
-      return alert("전화번호 11자리를 정확히 입력해 주세요.");
-    }
+    if (cleanPhone.length !== 11) return alert("전화번호 11자리를 정확히 입력해 주세요.");
 
     try {
-    // 2. 서버에 신청 데이터 전송
+      // booth_id를 포함하여 서버에 전송 (신규 기능 통합)
       const response = await fetch(`${API_BASE_URL}/api/reservations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...formData, 
-          phone: cleanPhone // 숫자만 추출된 번호로 보냄
-        }),
+        body: JSON.stringify({ ...formData, booth_id: parseInt(boothId) })
       });
 
-      const result = await response.json();
-
       if (response.ok) {
-      // 성공 시
-        alert("신청이 정상적으로 접수되었습니다.");
-        navigate('/check', { state: { autoCheck: { ...formData, id: result.id, phone: cleanPhone } } });
+        const result = await response.json();
+        // 결과 확인 페이지로 이동 (기존 로직 계승)
+        navigate('/check', { state: { autoCheck: { ...formData, id: result.id } } });
       } else {
-      // 서버에서 전달한 에러 메시지(중복 안내 등) 출력
-        alert(result.error || "신청 중 오류가 발생했습니다.");
+        const err = await response.json();
+        alert(err.error || "신청에 실패했습니다.");
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      alert("서버 연결에 실패했습니다.");
     }
   };
 
@@ -84,7 +92,7 @@ const UserForm = () => {
               <img className="inline-block w-60" src="logo.png" />
             </div>
           <span className="inline-block bg-slate-900 text-white text-[12px] font-black px-4 py-1.5 rounded-full mt-2 mb-3 tracking-[0.2em] uppercase">
-            어린이날 체험부스
+            {boothInfo ? boothInfo.name : "로딩 중..."}
           </span>
           <h1 className="text-4xl font-black text-slate-900 leading-tight tracking-tighter">
             체험부스 <span className="text-blue-600 font-extrabold">신청</span>
