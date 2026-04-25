@@ -11,8 +11,8 @@ const AdminHeader = () => {
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
         <h1 className="text-xl font-black text-slate-900 tracking-tighter">ADMIN CENTER</h1>
         <nav className="flex gap-8 h-full">
-          <Link to="/admin" className={`flex items-center px-1 font-bold ${location.pathname === '/admin' ? activeClass : inactiveClass}`}>대시보드</Link>
-          <Link to="/admin/booths" className={`flex items-center px-1 font-bold ${location.pathname.startsWith('/admin/booths') ? activeClass : inactiveClass}`}>부스관리</Link>
+          <Link to="/manage" className={`flex items-center px-1 font-bold ${location.pathname === '/manage' ? activeClass : inactiveClass}`}>대시보드</Link>
+          <Link to="/manage/booths" className={`flex items-center px-1 font-bold ${location.pathname.startsWith('/manage/booths') ? activeClass : inactiveClass}`}>부스관리</Link>
         </nav>
       </div>
     </header>
