@@ -23,7 +23,7 @@ const LandingPage = () => {
               <Link 
                 key={booth.id} 
                 to={`/reserve/${booth.id}`}
-                className="group bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all block"
+                className="group bg-slate-50 p-6 rounded-[2.5rem] border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all block"
               >
                 <div className="flex justify-between items-center">
                   <span className="text-2xl font-black text-slate-900 group-hover:text-blue-600">{booth.name}</span>
