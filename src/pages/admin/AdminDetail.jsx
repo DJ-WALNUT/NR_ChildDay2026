@@ -152,12 +152,12 @@ const sortedReservations = useMemo(() => {
   };
 
   const clearAllData = async () => {
-    if (window.confirm("⚠️ 서버의 모든 데이터를 영구 삭제하시겠습니까?")) {
+    if (window.confirm("⚠️ 현재 부스의 데이터를 초기화 하시겠습니까?")) {
       try {
         const response = await fetch(`${API_BASE_URL}/api/booths/${boothId}/clear`, { method: 'DELETE' });
         if (response.ok) {
           setReservations([]);
-          alert("서버 데이터가 초기화되었습니다.");
+          alert("현재 부스의 데이터가 초기화되었습니다.");
         }
       } catch (error) {
         alert("삭제 실패: 서버 연결을 확인하세요.");
