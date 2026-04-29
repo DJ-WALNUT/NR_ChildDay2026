@@ -119,8 +119,15 @@ const CheckReservation = () => {
                   <span className="text-3xl font-black text-blue-400 tabular-nums">{result.time}</span>
                 </div>
                 <div className="pt-6 border-t border-slate-800 flex justify-center">
-                  <span className={`px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest ${result.status === 'noshow' ? 'bg-red-600 text-white' : 'bg-white text-slate-900'}`}>
-                    {result.status === 'noshow' ? '취소(노쇼)' : result.status === 'completed' ? '체험 완료' : '입장 가능'}
+                  <span className={`px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest ${
+                    result.status === 'noshow' ? 'bg-red-600 text-white' : 
+                    result.status === 'waiting' ? 'bg-orange-500 text-white' : // 대기자 색상 추가
+                    'bg-white text-slate-900'
+                  }`}>
+                    {result.status === 'noshow' ? '취소(노쇼)' : 
+                     result.status === 'completed' ? '체험 완료' : 
+                     result.status === 'waiting' ? '대기자' : // 대기자 텍스트 추가
+                     '입장 가능'}
                   </span>
                 </div>
               </div>

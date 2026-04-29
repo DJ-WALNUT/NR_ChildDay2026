@@ -113,17 +113,29 @@ const AdminDashboard = () => {
     setReservations(prev => prev.filter(r => r.id !== id));
   };
 
-  const sortedReservations = useMemo(() => {
+const sortedReservations = useMemo(() => {
     return [...reservations].sort((a, b) => {
+      // 1. 타임이 완전히 동일한 경우 (예: 둘 다 "11시 A타임"이거나 둘 다 "선착순 접수"인 경우)
+      // id 값(생성된 순서)을 비교하여 먼저 신청한 사람이 위로 오게 정렬
+      if (a.time === b.time) {
+        return a.id - b.id;
+      }
+
+      // 2. 타임이 다른 경우 기존처럼 숫자(시간) 우선 추출하여 비교
       const matchA = a.time.match(/\d+/);
       const matchB = b.time.match(/\d+/);
 
       if (matchA && matchB) {
         const timeA = parseInt(matchA[0]);
         const timeB = parseInt(matchB[0]);
+        
+        // 시간이 다르면 빠른 시간 순으로 정렬
         if (timeA !== timeB) return timeA - timeB;
+        
+        // 시간(숫자)은 같지만 텍스트가 다른 경우 (예: 11시 A타임 vs 11시 B타임)
         return a.time.localeCompare(b.time);
       }
+      
       return a.time.localeCompare(b.time);
     });
   }, [reservations]);
@@ -306,7 +318,11 @@ const AdminDashboard = () => {
               </thead>
               <tbody className="divide-y-2 divide-slate-50">
                 {sortedReservations.map(r => (
-                  <tr key={r.id} className={`font-bold transition-all ${r.status === 'noshow' ? 'bg-red-50/50 opacity-40 grayscale italic' : 'hover:bg-blue-50/50'}`}>
+                  <tr key={r.id} className={`font-bold transition-all ${
+                    r.status === 'noshow' ? 'bg-red-50/50 opacity-40 grayscale italic' : 
+                    r.status === 'waiting' ? 'bg-orange-50/70' : // 관리자 페이지 대기자 행 강조
+                    'hover:bg-blue-50/50'
+                  }`}>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-blue-600 font-black text-lg tabular-nums tracking-tighter whitespace-nowrap">{r.time}</td>
                     <td className="py-5 px-4 md:py-7 md:px-10 whitespace-nowrap">
                       <div className="text-slate-900 text-lg font-black mb-1">{r.name}</div>
@@ -316,6 +332,8 @@ const AdminDashboard = () => {
                     </td>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-slate-500 font-black whitespace-nowrap">{r.ageGroup}</td>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-center whitespace-nowrap space-x-2">
+                      {/* 대기자 뱃지 추가 */}
+                      {r.status === 'waiting' && <span className="px-2 py-1 mr-2 rounded text-[10px] bg-orange-500 text-white font-black">대기중</span>}
                       <button onClick={() => toggleNoShow(r.id)} className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${r.status === 'noshow' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'}`}>노쇼</button>
                       <button onClick={() => markAsCompleted(r.id)} className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${r.status === 'completed' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-400'}`}>체험완료</button>
                       <button onClick={() => deleteReservation(r.id)} className="px-3 py-1.5 rounded-lg text-xs font-black uppercase bg-slate-800 text-white hover:bg-red-500 transition-all">삭제</button>

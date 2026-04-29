@@ -79,7 +79,10 @@ const UserForm = () => {
 
       if (response.ok) {
         const result = await response.json();
-        navigate(`/check/${boothId}`, { state: { autoCheck: { ...submitData, id: result.id } } });
+        // 백엔드에서 넘겨준 is_waiting 플래그 확인
+        if (result.is_waiting) alert("제한인원이 초과하여 대기자로 신청되었습니다.");
+        // status 속성을 autoCheck 객체에 포함하여 넘겨줍니다.
+        navigate(`/check/${boothId}`, { state: { autoCheck: { ...submitData, id: result.id, status: result.status } } });
       } else {
         const err = await response.json();
         alert(err.error || "신청에 실패했습니다.");
@@ -140,8 +143,8 @@ const UserForm = () => {
           {boothInfo?.mode === 'fcfs' && (
             <div className="p-6 bg-blue-50 rounded-2xl border-2 border-blue-100">
               <p className="text-blue-700 font-bold text-center">
-                이 부스는 신청 선착순으로 운영됩니다. <br/>
-                정보 입력 후 즉시 접수 및 체험 진행하시면 됩니다.
+                이 부스는 선착순으로 운영됩니다.<br/>
+                신청 후 바로 체험하시면 됩니다.
               </p>
             </div>
           )}
@@ -193,7 +196,8 @@ const UserForm = () => {
           </div>
           <div className="space-y-2">
             <p className="text-slate-400 text-sm font-medium">
-              © 2026 Nareum Youth Center. All rights reserved.
+              © 2026 Nareum Youth Center.<br/>
+              All rights reserved.
             </p>
             <div className="flex justify-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
               <span>Created by CLUSTER</span>
