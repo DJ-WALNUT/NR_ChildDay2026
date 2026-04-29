@@ -312,6 +312,7 @@ const sortedReservations = useMemo(() => {
                 <tr>
                   <th className="py-5 px-4 md:px-10 whitespace-nowrap">시간대</th>
                   <th className="py-5 px-4 md:px-10 whitespace-nowrap">이름</th>
+                  <th className="py-5 px-4 md:px-10 whitespace-nowrap">식별번호</th>
                   <th className="py-5 px-4 md:px-10 whitespace-nowrap">연령대</th>
                   <th className="py-5 px-4 md:px-10 text-center whitespace-nowrap">관리</th>
                 </tr>
@@ -325,12 +326,15 @@ const sortedReservations = useMemo(() => {
                   }`}>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-blue-600 font-black text-lg tabular-nums tracking-tighter whitespace-nowrap">{r.time}</td>
                     <td className="py-5 px-4 md:py-7 md:px-10 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                      <div className={`inline-block text-[9px] font-black uppercase px-1 py-0.5 rounded border ${r.gender === '남' ? 'text-blue-500 border-blue-200 bg-blue-50' : 'text-pink-500 border-pink-200 bg-pink-50'}`}>
+                        {r.gender === '남' ? '남' : '여'}
+                      </div>
                       <div className="text-slate-900 text-lg font-black mb-1">{r.name}</div>
-                      <div className={`inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded border ${r.gender === '남' ? 'text-blue-500 border-blue-200 bg-blue-50' : 'text-pink-500 border-pink-200 bg-pink-50'}`}>
-                        {r.gender === '남' ? '남자' : '여자'}
                       </div>
                     </td>
-                    <td className="py-5 px-4 md:py-7 md:px-10 text-slate-500 font-black whitespace-nowrap">{r.ageGroup}</td>
+                    <td className="py-5 px-4 md:py-7 md:px-10 text-slate-900 font-black whitespace-nowrap">{r.phone}</td>
+                    <td className="py-5 px-4 md:py-7 md:px-10 text-slate-900 font-black whitespace-nowrap">{r.ageGroup}</td>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-center whitespace-nowrap space-x-2">
                       {/* 대기자 뱃지 추가 */}
                       {r.status === 'waiting' && <span className="px-2 py-1 mr-2 rounded text-[10px] bg-orange-500 text-white font-black">대기중</span>}

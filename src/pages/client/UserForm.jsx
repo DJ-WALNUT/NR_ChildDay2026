@@ -68,7 +68,7 @@ const UserForm = () => {
     if (!agreed) return alert("필수 약관에 동의해 주세요.");
 
     const cleanPhone = formData.phone.replace(/[^0-9]/g, "");
-    if (cleanPhone.length !== 11) return alert("전화번호 11자리를 정확히 입력해 주세요.");
+    if (cleanPhone.length !== 4) return alert("식별번호 4자리를 정확히 입력해 주세요.");
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/reservations`, {
@@ -166,7 +166,7 @@ const UserForm = () => {
             {["0~8세", "9~13세", "14~16세", "17~19세", "20~24세", "24세 이상"].map(age => <option key={age} value={age}>{age}</option>)}
           </select>
 
-          <input type="tel" placeholder="연락처 (숫자만 11자리 입력)" required className={inputStyle} 
+          <input type="tel" placeholder="임의의 식별번호 (숫자만 4자리 입력)" required className={inputStyle} 
             onChange={e => setFormData({...formData, phone: e.target.value})} />
 
           <div className="space-y-3">
