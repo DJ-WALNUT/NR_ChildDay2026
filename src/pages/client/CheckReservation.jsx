@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useParams } from 'react-router-dom'; 
+import { useLocation, useParams, useNavigate } from 'react-router-dom'; 
 import { API_BASE_URL } from '../../config';
 
 const CheckReservation = () => {
@@ -7,6 +7,7 @@ const CheckReservation = () => {
   // 만약 URL이 /check/1 형태가 아니라면 여기서 오류가 발생하여 흰 화면이 뜰 수 있습니다.
   const { boothId } = useParams(); 
   const location = useLocation();
+  const navigate = useNavigate(); // [추가] 네비게이션 훅 초기화
   
   const [search, setSearch] = useState({ name: '', phone: '' });
   const [result, setResult] = useState(null);
@@ -63,11 +64,41 @@ const CheckReservation = () => {
     }
   };
 
+  // [추가] 사용자 본인 취소 함수
+  const handleCancel = async () => {
+    if (!window.confirm("정말 신청을 취소하시겠습니까?\n취소 후에는 복구가 불가능합니다.")) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reservations/${result.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert("신청이 정상적으로 취소되었습니다.");
+        setResult(null); // 취소 후 화면에서 결과 지우기
+      } else {
+        alert("취소 처리에 실패했습니다.");
+      }
+    } catch (error) {
+      alert("서버 연결에 실패했습니다.");
+    }
+  };
+
   const inputStyle = "w-full px-6 py-5 bg-slate-800 border-2 border-slate-700 rounded-3xl focus:border-yellow-400 outline-none transition-all text-lg font-black text-white placeholder:text-slate-500";
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col items-center justify-center">
       <div className="w-full max-w-md">
+        {/* [추가] 신청페이지로 돌아가기 버튼 */}
+        <div className="mb-6">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-slate-400 font-bold hover:text-white transition-colors"
+          >
+            <span>←</span> 신청페이지로 돌아가기
+          </button>
+        </div>
+
         <h1 className="text-4xl font-black text-white text-center mb-8 tracking-tighter">
           예약정보 <span className="text-yellow-400 underline underline-offset-8">확인</span>
         </h1>
@@ -118,17 +149,28 @@ const CheckReservation = () => {
                   </span>
                   <span className="text-3xl font-black text-blue-400 tabular-nums">{result.time}</span>
                 </div>
-                <div className="pt-6 border-t border-slate-800 flex justify-center">
+                <div className="pt-6 border-t border-slate-800 flex flex-col items-center gap-4">
                   <span className={`px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest ${
                     result.status === 'noshow' ? 'bg-red-600 text-white' : 
-                    result.status === 'waiting' ? 'bg-orange-500 text-white' : // 대기자 색상 추가
+                    result.status === 'waiting' ? 'bg-orange-500 text-white' :
                     'bg-white text-slate-900'
                   }`}>
                     {result.status === 'noshow' ? '취소(노쇼)' : 
                      result.status === 'completed' ? '체험 완료' : 
-                     result.status === 'waiting' ? '대기자' : // 대기자 텍스트 추가
+                     result.status === 'waiting' ? '대기자' : 
                      '입장 가능'}
                   </span>
+
+                  {/* 노쇼나 체험 완료 상태가 아닐 때만 취소 버튼 표시 */}
+                  {result.status !== 'noshow' && result.status !== 'completed' && (
+                    <button 
+                      onClick={handleCancel}
+                      type="button"
+                      className="mt-1 text-l font-bold text-slate-400 hover:text-red-400 underline underline-offset-4 transition-colors"
+                    >
+                      신청 취소하기
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -21,11 +21,11 @@ const UserForm = () => {
       const data = await res.json();
       const current = data.find(b => b.id === parseInt(boothId));
       
-      if (current && !current.is_active) {
+      /*if (current && !current.is_active) {
         alert("현재 이 부스는 신청이 마감되었습니다.");
         navigate('/');
         return;
-      }
+      }*/
       setBoothInfo(current);
       
       // [수정] 서버에서 받아온 부스 설정에 맞춰 시간 슬롯을 동적으로 생성합니다.
@@ -57,7 +57,7 @@ const UserForm = () => {
     
     const submitData = {
       ...formData,
-      time: boothInfo.mode === 'fcfs' ? '선착순 접수' : formData.time
+      time: boothInfo.mode === 'fcfs' ? '선착순' : formData.time
     };
 
     if (!submitData.time) {
@@ -80,7 +80,7 @@ const UserForm = () => {
       if (response.ok) {
         const result = await response.json();
         // 백엔드에서 넘겨준 is_waiting 플래그 확인
-        if (result.is_waiting) alert("제한인원이 초과하여 대기자로 신청되었습니다.");
+        if (result.is_waiting) alert("제한인원이 초과하여 대기자로 신청되었습니다. 대기자는 희망 시간에 공석 발생 시 참여하실 수 있습니다.");
         // status 속성을 autoCheck 객체에 포함하여 넘겨줍니다.
         navigate(`/check/${boothId}`, { state: { autoCheck: { ...submitData, id: result.id, status: result.status } } });
       } else {
@@ -121,6 +121,8 @@ const UserForm = () => {
           </span>
         </header>
 
+        {/* [수정] 부스가 활성화 상태일 때만 폼을 보여주고, 아닐 때는 마감 문구를 띄웁니다. */}
+        {boothInfo?.is_active ? (
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* 드롭다운 (생성된 timeSlots 배열을 활용) */}
@@ -149,7 +151,8 @@ const UserForm = () => {
             </div>
           )}
 
-          <input type="text" placeholder="성함 (실명 입력)" required className={inputStyle} 
+          <p className="text-sm text-slate-700 ml-2 mb-1">* 신청자 이름이 아닌 참가자 이름으로 작성해주세요!</p>
+          <input type="text" placeholder="참가자 성함 (실명 입력)" required className={inputStyle} 
             onChange={e => setFormData({...formData, name: e.target.value})} />
 
           <div className="grid grid-cols-2 gap-3">
@@ -185,6 +188,13 @@ const UserForm = () => {
             신청서 제출하기
           </button>
         </form>
+        ) : (
+          <div className="py-16 text-center space-y-4 animate-fade-in">
+            <div className="text-6xl mb-6 shadow-inner rounded-full inline-block p-6 bg-slate-50">🔒</div>
+            <h2 className="text-2xl font-black text-slate-800">현재 접수가 마감되었습니다.</h2>
+            <p className="text-slate-500 font-medium">부스 운영이 종료되었거나 신청 인원이 가득 찼습니다.</p>
+          </div>
+        )}
       </div>
 
       <footer className="max-w-xl mx-auto px-6 py-12 text-center border-t border-slate-800">
