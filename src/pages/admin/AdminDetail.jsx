@@ -140,6 +140,17 @@ const sortedReservations = useMemo(() => {
     });
   }, [reservations]);
 
+  // [추가] 1. 검색어 상태 관리
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // [추가] 2. 검색어가 있을 경우 필터링된 데이터 생성
+  const filteredReservations = useMemo(() => {
+    if (!searchTerm.trim()) return sortedReservations;
+    return sortedReservations.filter(r => 
+      r.name.includes(searchTerm) || r.phone.includes(searchTerm)
+    );
+  }, [sortedReservations, searchTerm]);
+
   const exportToExcel = () => {
     const data = sortedReservations.map(r => ({
       "시간": r.time, "이름": r.name, "성별": r.gender, 
@@ -302,10 +313,24 @@ const sortedReservations = useMemo(() => {
 
         {/* 상세 리스트 섹션 */}
         <section className="bg-white rounded-[2rem] shadow-xl border-2 border-slate-200 overflow-hidden">
-          <div className="px-8 py-6 border-b-4 border-slate-100 flex justify-between items-center bg-white">
-            <h3 className="text-xl font-black text-slate-900">신청 현황</h3>
-            <span className="text-[10px] font-black bg-blue-100 text-blue-700 px-3 py-1 rounded-full uppercase">시간순 정렬</span>
+          <div className="px-8 py-6 border-b-4 border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-black text-slate-900">신청 현황</h3>
+              <span className="text-[10px] font-black bg-blue-100 text-blue-700 px-3 py-1 rounded-full uppercase">시간순 정렬</span>
+            </div>
+            
+            <div className="w-full md:w-72 relative">
+              <input 
+                type="text" 
+                placeholder="이름 또는 식별번호(4자리) 검색" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold text-slate-700 text-sm transition-all"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+            </div>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
@@ -318,7 +343,7 @@ const sortedReservations = useMemo(() => {
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-slate-50">
-                {sortedReservations.map(r => (
+                {filteredReservations.map(r => (
                   <tr key={r.id} className={`font-bold transition-all ${
                     r.status === 'noshow' ? 'bg-red-50/50 opacity-40 grayscale italic' : 
                     r.status === 'waiting' ? 'bg-orange-50/70' : // 관리자 페이지 대기자 행 강조
@@ -349,6 +374,59 @@ const sortedReservations = useMemo(() => {
           </div>
         </section>
       </div>
+
+      {/* [추가] 우하단 플로팅 버튼 그룹 (새로고침, 상단이동) */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
+        <button 
+          onClick={fetchData} 
+          className="p-4 bg-slate-900 text-white rounded-full shadow-2xl hover:bg-blue-600 transition-all hover:-translate-y-1 group"
+          title="새로고침"
+        >
+          {/* 새로고침 아이콘 SVG */}
+          <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+        </button>
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="p-4 bg-slate-900 text-white rounded-full shadow-2xl hover:bg-yellow-400 hover:text-slate-900 transition-all hover:-translate-y-1"
+          title="상단으로 이동"
+        >
+          {/* 위 화살표 아이콘 SVG */}
+          <svg fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+          </svg>
+        </button>
+      </div>
+
+      <footer className="max-w-xl mx-auto px-6 py-12 text-center border-slate-800">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-70 rounded-xl flex items-center justify-center">
+              <img src="/logo.png" alt="Logo" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-slate-400 text-sm font-medium">
+              © 2026 Nareum Youth Center.<br/>
+              All rights reserved.
+            </p>
+            <div className="flex justify-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
+              <span>Created by CLUSTER (최원서)</span>
+            </div>
+          </div>
+          <div className="pt-4">
+            <a 
+              href="https://gmyouth.or.kr/nareum/index.do" 
+              target="_blank" 
+              rel="noreferrer"
+              className="text-[15px] font-black text-slate-500 hover:text-blue-400 transition-colors border border-slate-700 px-3 py-1 rounded-full"
+            >
+              공식 홈페이지 바로가기
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
