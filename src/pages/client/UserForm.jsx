@@ -11,46 +11,107 @@ const UserForm = () => {
   });
   const [terms, setTerms] = useState("");
   const [agreed, setAgreed] = useState(false);
-  
-  // [추가] 동적으로 생성할 시간 슬롯을 State로 관리합니다.
-  const [timeSlots, setTimeSlots] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const res = await fetch(`${API_BASE_URL}/api/booths`);
-      const data = await res.json();
-      const current = data.find(b => b.id === parseInt(boothId));
-      
-      /*if (current && !current.is_active) {
-        alert("현재 이 부스는 신청이 마감되었습니다.");
-        navigate('/');
-        return;
-      }*/
-      setBoothInfo(current);
-      
-      // [수정] 서버에서 받아온 부스 설정에 맞춰 시간 슬롯을 동적으로 생성합니다.
-      if (current && current.mode === 'time') {
-        const slots = [];
-        const slotLabels = ['A', 'B', 'C', 'D', 'E', 'F']; // 최대 6타임까지 대응
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/booths`);
+        const data = await res.json();
+        const current = data.find(b => b.id === parseInt(boothId));
         
-        // start_hour 부터 end_hour 까지 반복
-        for (let hour = current.start_hour; hour <= current.end_hour; hour++) {
-          // slots_per_hour 갯수만큼 A, B, C 분할 생성
-          for (let i = 0; i < current.slots_per_hour; i++) {
-            // 시간당 타임이 1개면 '11시', 여러 개면 '11시 A타임' 형태로 생성
-            const suffix = current.slots_per_hour === 1 ? '' : ` ${slotLabels[i]}타임`;
-            slots.push(`${hour}시${suffix}`);
-          }
+        setBoothInfo(current);
+        
+        // [추가] 진입 시 대기자 안내 경고창 로직
+        if (current && current.use_waitlist) {
+          setTimeout(() => {
+            if (current.mode === 'time') {
+              let totalSlots = 0;
+              let fullSlots = 0;
+              const slotLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+              for (let hour = current.start_hour; hour <= current.end_hour; hour++) {
+                for (let i = 0; i < current.slots_per_hour; i++) {
+                  totalSlots++;
+                  const suffix = current.slots_per_hour === 1 ? '' : ` ${slotLabels[i]}타임`;
+                  const timeString = `${hour}시${suffix}`;
+                  const count = current.slot_counts?.[timeString] || 0;
+                  if (current.limit_per_slot > 0 && count >= current.limit_per_slot) fullSlots++;
+                }
+              }
+
+              if (fullSlots > 0) {
+                if (fullSlots === totalSlots) {
+                  alert("현재 모든 타임별 정원이 초과하여 대기자로 접수해야합니다. 대기자는 희망 시간에 공석 발생 시 참여하실 수 있습니다.");
+                } else {
+                  alert("현재 일부 타임 정원이 초과하여 대기자로 접수해야합니다. 대기자는 희망 시간에 공석 발생 시 참여하실 수 있습니다.");
+                }
+              }
+            } else if (current.mode === 'fcfs') {
+              if (current.total_limit > 0 && current.count >= current.total_limit) {
+                alert("현재 선착순 정원이 초과하여 대기자로 접수해야합니다. 대기자는 공석 발생 시 참여하실 수 있습니다.");
+              }
+            }
+          }, 100); // UI 렌더링 후 띄우기 위해 약간의 지연 시간 부여
         }
-        setTimeSlots(slots);
+        
+        const termRes = await fetch('/terms.md');
+        const termText = await termRes.text();
+        setTerms(termText);
+      } catch (error) {
+        console.error("데이터 로드 실패:", error);
       }
-      
-      const termRes = await fetch('/terms.md');
-      const termText = await termRes.text();
-      setTerms(termText);
     };
     loadData();
-  }, [boothId, navigate]);
+  }, [boothId]);
+
+  // [수정] 드롭다운 옵션 객체 배열({ value, label })로 생성
+  const generateTimeOptions = () => {
+    if (!boothInfo || boothInfo.mode !== 'time') return [];
+    
+    const options = [];
+    const slotLabels = ['A', 'B', 'C', 'D', 'E', 'F']; 
+
+    for (let hour = boothInfo.start_hour; hour <= boothInfo.end_hour; hour++) {
+      for (let i = 0; i < boothInfo.slots_per_hour; i++) {
+        const suffix = boothInfo.slots_per_hour === 1 ? '' : ` ${slotLabels[i]}타임`;
+        const timeString = `${hour}시${suffix}`;
+        
+        const currentSlotCount = boothInfo.slot_counts?.[timeString] || 0;
+        const isFull = boothInfo.limit_per_slot > 0 && currentSlotCount >= boothInfo.limit_per_slot;
+        
+        if (isFull) {
+          if (!boothInfo.use_waitlist) {
+            continue; // 대기자 운영 안하면 마감된 타임은 숨김
+          } else {
+            // [추가] 꽉 찼지만 대기자를 받을 경우 라벨에 직관적 표시
+            options.push({ value: timeString, label: `${timeString} [대기자로 접수]` });
+          }
+        } else {
+          // 정상 접수 가능
+          options.push({ value: timeString, label: timeString });
+        }
+      }
+    }
+    return options;
+  };
+
+  const availableTimes = generateTimeOptions();
+
+  const isBoothFullyClosed = () => {
+    if (!boothInfo) return false;
+    if (!boothInfo.is_active) return true;
+
+    if (!boothInfo.use_waitlist) { 
+      if (boothInfo.mode === 'fcfs') {
+        return boothInfo.total_limit > 0 && boothInfo.count >= boothInfo.total_limit;
+      } else if (boothInfo.mode === 'time') {
+        return availableTimes.length === 0;
+      }
+    }
+    return false;
+  };
+
+  const isClosed = isBoothFullyClosed();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,10 +121,7 @@ const UserForm = () => {
       time: boothInfo.mode === 'fcfs' ? '선착순' : formData.time
     };
 
-    if (!submitData.time) {
-      alert("희망 체험 시간을 선택해 주세요.");
-      return;
-    }
+    if (boothInfo.mode === 'time' && !submitData.time) return alert("희망 체험 시간을 선택해 주세요.");
     if (!formData.gender) return alert("성별을 선택해 주세요.");
     if (!agreed) return alert("필수 약관에 동의해 주세요.");
 
@@ -79,9 +137,9 @@ const UserForm = () => {
 
       if (response.ok) {
         const result = await response.json();
-        // 백엔드에서 넘겨준 is_waiting 플래그 확인
-        if (result.is_waiting) alert("제한인원이 초과하여 대기자로 신청되었습니다. 대기자는 희망 시간에 공석 발생 시 참여하실 수 있습니다.");
-        // status 속성을 autoCheck 객체에 포함하여 넘겨줍니다.
+        if (result.is_waiting) {
+          alert("제한인원이 초과하여 대기자로 신청되었습니다. 대기자는 희망 시간에 공석 발생 시 참여하실 수 있습니다.");
+        }
         navigate(`/check/${boothId}`, { state: { autoCheck: { ...submitData, id: result.id, status: result.status } } });
       } else {
         const err = await response.json();
@@ -98,7 +156,6 @@ const UserForm = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 pb-20 font-sans">
-      {/* ... 상단 배너 및 로고 생략 (기존 코드와 완벽히 동일) ... */}
       <div className="w-full px-4 pt-6 max-w-xl mx-auto">
         <Link 
           to={`/check/${boothId}`}
@@ -116,17 +173,16 @@ const UserForm = () => {
           <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter">
             체험부스 <span className="text-blue-600 font-extrabold">신청</span>
           </h1>
-          <span className="inline-block bg-slate-900 text-white text-xl font-black px-4 py-2 rounded-full mt-4 tracking-[0.2em] uppercase">
-            {boothInfo ? boothInfo.name : "로딩 중..."}
+          <span className="inline-block bg-slate-900 text-white text-xl font-black px-4 py-2 rounded-3xl mt-4 tracking-widest break-keep">
+            {boothInfo.name}
           </span>
         </header>
 
-        {/* [수정] 부스가 활성화 상태일 때만 폼을 보여주고, 아닐 때는 마감 문구를 띄웁니다. */}
-        {boothInfo?.is_active ? (
+        {!isClosed ? (
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* 드롭다운 (생성된 timeSlots 배열을 활용) */}
-          {boothInfo?.mode === 'time' && (
+          {/* [수정] availableTimes의 객체 구조(value, label)에 맞춰서 렌더링 */}
+          {boothInfo.mode === 'time' && (
             <select 
               className={`${inputStyle} font-bold`} 
               value={formData.time}
@@ -134,15 +190,15 @@ const UserForm = () => {
               required
             >
               <option value="" disabled>희망하는 체험시간을 선택하세요</option>
-              {timeSlots.map(slot => (
-                <option key={slot} value={slot}>{slot}</option>
+              {availableTimes.map(slot => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
               ))}
             </select>
           )}
-
-          {/* ... (이하 모든 UI 기존 코드와 완벽히 동일) ... */}
           
-          {boothInfo?.mode === 'fcfs' && (
+          {boothInfo.mode === 'fcfs' && (
             <div className="p-6 bg-blue-50 rounded-2xl border-2 border-blue-100">
               <p className="text-blue-700 font-bold text-center">
                 이 부스는 선착순으로 운영됩니다.<br/>
@@ -196,35 +252,6 @@ const UserForm = () => {
           </div>
         )}
       </div>
-
-      <footer className="max-w-xl mx-auto px-6 py-12 text-center border-t border-slate-800">
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-70 rounded-xl flex items-center justify-center shadow-lg">
-              <img src="/logo.png" alt="Logo" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <p className="text-slate-400 text-sm font-medium">
-              © 2026 Nareum Youth Center.<br/>
-              All rights reserved.
-            </p>
-            <div className="flex justify-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">
-              <span>Created by CLUSTER</span>
-            </div>
-          </div>
-          <div className="pt-4">
-            <a 
-              href="https://gmyouth.or.kr/nareum/index.do" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-[15px] font-black text-slate-500 hover:text-blue-400 transition-colors border border-slate-700 px-3 py-1 rounded-full"
-            >
-              공식 홈페이지 바로가기
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

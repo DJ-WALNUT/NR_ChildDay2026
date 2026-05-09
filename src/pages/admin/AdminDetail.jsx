@@ -14,8 +14,9 @@ const AdminDashboard = () => {
 
   // 수정 모드 상태 관리
   const [isEditing, setIsEditing] = useState(false);
+  // [수정] editData State에 use_waitlist 추가
   const [editData, setEditData] = useState({
-    name: '', mode: 'time', total_limit: 0, limit_per_slot: 0, start_hour: 11, end_hour: 16, slots_per_hour: 3
+    name: '', mode: 'time', use_waitlist: false, total_limit: 0, limit_per_slot: 0, start_hour: 11, end_hour: 16, slots_per_hour: 3
   });
 
   const fetchData = async () => {
@@ -36,6 +37,7 @@ const AdminDashboard = () => {
         setEditData({
           name: currentBooth.name,
           mode: currentBooth.mode,
+          use_waitlist: currentBooth.use_waitlist || false, // 백엔드 필드 매핑
           total_limit: currentBooth.total_limit,
           limit_per_slot: currentBooth.limit_per_slot,
           start_hour: currentBooth.start_hour,
@@ -59,6 +61,7 @@ const AdminDashboard = () => {
         body: JSON.stringify({
           name: editData.name,
           mode: editData.mode,
+          use_waitlist: editData.use_waitlist, // [추가] 대기자 운영여부
           total_limit: parseInt(editData.total_limit, 10),
           limit_per_slot: parseInt(editData.limit_per_slot, 10),
           start_hour: parseInt(editData.start_hour, 10),
@@ -232,6 +235,20 @@ const sortedReservations = useMemo(() => {
                   <button onClick={() => setEditData({...editData, mode: "time"})} className={`flex-1 py-2 rounded-lg font-bold text-sm border-2 ${editData.mode === 'time' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-400'}`}>타임별 예약</button>
                   <button onClick={() => setEditData({...editData, mode: "fcfs"})} className={`flex-1 py-2 rounded-lg font-bold text-sm border-2 ${editData.mode === 'fcfs' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-400'}`}>현장 선착순</button>
                 </div>
+              </div>
+
+              {/* [추가] 대기자 명단 운영 여부 체크박스 */}
+              <div className="col-span-1 md:col-span-2 flex items-center gap-3 bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                <input 
+                  type="checkbox" 
+                  id="edit_waitlist_toggle"
+                  checked={editData.use_waitlist}
+                  onChange={(e) => setEditData({...editData, use_waitlist: e.target.checked})}
+                  className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+                />
+                <label htmlFor="edit_waitlist_toggle" className="text-sm font-black text-slate-700 cursor-pointer select-none">
+                  대기자 접수 기능 켜기
+                </label>
               </div>
 
               {editData.mode === 'time' ? (

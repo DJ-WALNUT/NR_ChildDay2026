@@ -21,6 +21,8 @@ const AdminBoothManager = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/booths`);
       const data = await res.json();
+      // [수정] id를 기준으로 내림차순 정렬 (큰 숫자가 위로)
+      const sortedData = data.sort((a, b) => b.id - a.id);
       setBooths(data);
     } catch (e) {
       console.error("부스 목록 로드 실패", e);
@@ -176,7 +178,9 @@ const AdminBoothManager = () => {
 
         {/* --- 생성된 부스 목록 --- */}
         <div className="grid gap-4">
-          <h3 className="text-lg font-black text-slate-800 mb-2 ml-2">개설된 부스 목록 ({booths.length})</h3>
+          <h3 className="text-lg font-black text-slate-800 mb-2 ml-2">개설된 부스 목록 ({booths.length}개)
+            <p className="text-slate-500 font-bold text-sm">[개설 최신순 정렬]</p>
+          </h3>
           {booths.map(booth => (
             <div key={booth.id} className="bg-white p-6 rounded-[1.5rem] border flex flex-col md:flex-row justify-between md:items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
               <div onClick={() => navigate(`/manage/booths/${booth.id}`)} className="cursor-pointer flex-1">
