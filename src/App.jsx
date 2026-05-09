@@ -16,11 +16,10 @@ function App() {
           <Route path="/reserve/:boothId" element={<UserForm />} />{/* 2. 사용자 신청: /reserve/1, /reserve/2 형태로 접속 */}
           <Route path="/check/:boothId" element={<CheckReservation />} />{/* 3. 예약 확인 */}
 
-          <Route element={<AdminRoute />}>
+
             <Route path="/manage" element={<AdminMain />} />{/* 4. 관리자 메인 (전체 통계) */}
             <Route path="/manage/booths" element={<AdminBoothList />} />{/* 5. 부스 목록 관리 (추가/삭제/상태변경) */}
             <Route path="/manage/booths/:boothId" element={<AdminDetail />} />{/* 6. 특정 부스 상세 대시보드 (신청자 명단) */}
-          </Route>
         </Routes>
       </div>
     </Router>
