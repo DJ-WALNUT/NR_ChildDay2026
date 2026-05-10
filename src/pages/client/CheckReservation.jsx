@@ -120,7 +120,7 @@ const CheckReservation = () => {
           />
           <input 
             type="tel" 
-            placeholder="등록한 전화번호" 
+            placeholder="등록한 식별번호 4자리"
             required 
             className={inputStyle}
             onChange={e => setSearch({...search, phone: e.target.value})} 
