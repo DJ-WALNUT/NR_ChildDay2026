@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom'; 
 import { API_BASE_URL } from '../../config';
+import Footer from '../../components/Footer';
 
 const UserForm = () => {
   const { boothId } = useParams(); 
@@ -171,7 +172,7 @@ const UserForm = () => {
               <img className="inline-block w-60" src="/logo.png" alt="Logo" />
             </div>
           <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter">
-            체험부스 <span className="text-blue-600 font-extrabold">신청</span>
+            2026 오월의 난장<span className="text-blue-600">PAAN</span> <br/>체험부스 <span className="text-blue-400 font-extrabold">신청</span>
           </h1>
           <span className="inline-block bg-slate-900 text-white text-xl font-black px-4 py-2 rounded-3xl mt-4 tracking-widest break-keep">
             {boothInfo.name}
@@ -252,6 +253,8 @@ const UserForm = () => {
           </div>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 };
