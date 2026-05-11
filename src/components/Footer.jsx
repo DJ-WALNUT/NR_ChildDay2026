@@ -9,15 +9,18 @@ const AdminHeader = () => {
   return (
     <footer className="max-w-xl mx-auto px-6 py-12 text-center border-slate-800">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-center gap-2">
             <div className="w-70 rounded-xl flex items-center justify-center">
               <img src="/logo.png" alt="Logo" />
+            </div>
+            <div className="w-70 rounded-xl flex items-center justify-center">
+              <img src="/logo_su.png" alt="Logo" />
             </div>
           </div>
           <div className="space-y-2">
             <p className="text-slate-400 text-sm font-medium">
               © 2026 Nareum Youth Center.<br/>
-              IN 2026 GwangMyeong Yooth Center.<br/>
+              IN 2026 GwangMyeong Youth Center.<br/>
               All rights reserved.
             </p>
             <div className="flex justify-center gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest">

@@ -187,7 +187,7 @@ const sortedReservations = useMemo(() => {
     <div className="min-h-screen bg-slate-100 p-4 md:p-8 text-slate-900 font-sans">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* 상단 대시보드 헤더 */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 p-7 bg-slate-900 text-white rounded-[2rem] shadow-2xl border-b-8 border-blue-600">
+        <header className="flex flex-col justify-between items-start gap-6 p-7 bg-slate-900 text-white rounded-[2rem] shadow-2xl border-b-8 border-blue-600">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-sm uppercase ${boothInfo?.mode === 'fcfs' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
@@ -201,7 +201,7 @@ const sortedReservations = useMemo(() => {
                 : `운영: ${boothInfo?.start_hour}시~${boothInfo?.end_hour}시 (타임당 ${boothInfo?.limit_per_slot}명)`}
             </p>
           </div>
-          <div className="flex items-center gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-700 pt-6 md:pt-0 md:pl-8 flex-wrap">
+          <div className="flex flex-col md:flex-row flex-start gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-700 pt-6 md:pt-0 md:pl-8 flex-wrap">
             <div className="flex-1 text-center md:text-left mr-4">
               <div className="text-s font-black text-slate-500 uppercase mb-1">전체 신청</div>
               <div className="text-4xl font-black text-blue-400 tabular-nums">{totalReservations}</div>

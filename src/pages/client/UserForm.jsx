@@ -169,7 +169,7 @@ const UserForm = () => {
       <div className="max-w-xl mx-auto my-8 p-8 bg-white rounded-[2.5rem] shadow-2xl border-t-8 border-yellow-400 relative">
         <header className="text-center mb-10">
             <div className="rounded-xl flex items-center justify-center">
-              <img className="inline-block w-60" src="/logo.png" alt="Logo" />
+              <img className="inline-block w-60" src="/logo_su.png" alt="Logo" />
             </div>
           <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter">
             2026 오월의 난장<span className="text-blue-600">PAAN</span> <br/>체험부스 <span className="text-blue-400 font-extrabold">신청</span>
