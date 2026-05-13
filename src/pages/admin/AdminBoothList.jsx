@@ -185,8 +185,8 @@ const AdminBoothManager = () => {
           {booths.map(booth => (
             <div key={booth.id} className="bg-white p-6 rounded-[1.5rem] border flex flex-col md:flex-row justify-between md:items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
               <div onClick={() => navigate(`/manage/booths/${booth.id}`)} className="cursor-pointer flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-sm uppercase ${booth.mode === 'fcfs' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
+                <div className="flex items-center gap-2 mb-1 ">
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-sm break-keep uppercase ${booth.mode === 'fcfs' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
                     {booth.mode === 'fcfs' ? '선착순' : '타임별'}
                   </span>
                   <h3 className="text-xl font-black text-slate-900">{booth.name}</h3>

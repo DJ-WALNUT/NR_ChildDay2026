@@ -190,7 +190,7 @@ const sortedReservations = useMemo(() => {
         <header className="flex flex-col justify-between items-start gap-6 p-7 bg-slate-900 text-white rounded-[2rem] shadow-2xl border-b-8 border-blue-600">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-sm uppercase ${boothInfo?.mode === 'fcfs' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-sm break-keep uppercase ${boothInfo?.mode === 'fcfs' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
                 {boothInfo?.mode === 'fcfs' ? '선착순' : '타임별'}
               </span>
               <h1 className="text-4xl font-black tracking-tighter leading-none">{boothName} <span className="text-blue-400 font-extrabold">현황</span></h1>
