@@ -22,7 +22,6 @@ const UserForm = () => {
         
         setBoothInfo(current);
         
-        // [추가] 진입 시 대기자 안내 경고창 로직
         if (current && current.use_waitlist) {
           setTimeout(() => {
             if (current.mode === 'time') {
@@ -52,7 +51,7 @@ const UserForm = () => {
                 alert("현재 선착순 정원이 초과하여 대기자로 접수해야합니다. 대기자는 공석 발생 시 참여하실 수 있습니다.");
               }
             }
-          }, 100); // UI 렌더링 후 띄우기 위해 약간의 지연 시간 부여
+          }, 100); 
         }
         
         const termRes = await fetch('/terms.md');
@@ -65,7 +64,6 @@ const UserForm = () => {
     loadData();
   }, [boothId]);
 
-  // [수정] 드롭다운 옵션 객체 배열({ value, label })로 생성
   const generateTimeOptions = () => {
     if (!boothInfo || boothInfo.mode !== 'time') return [];
     
@@ -82,13 +80,11 @@ const UserForm = () => {
         
         if (isFull) {
           if (!boothInfo.use_waitlist) {
-            continue; // 대기자 운영 안하면 마감된 타임은 숨김
+            continue; 
           } else {
-            // [추가] 꽉 찼지만 대기자를 받을 경우 라벨에 직관적 표시
             options.push({ value: timeString, label: `${timeString} [대기자로 접수]` });
           }
         } else {
-          // 정상 접수 가능
           options.push({ value: timeString, label: timeString });
         }
       }
@@ -151,37 +147,41 @@ const UserForm = () => {
     }
   };
 
-  if (!boothInfo) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-black">LOADING...</div>;
+  if (!boothInfo) return <div className="min-h-screen bg-sky-50 flex items-center justify-center text-sky-600 font-black">로딩중... 🫧</div>;
 
-  const inputStyle = "w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all text-base font-bold text-gray-900 placeholder:font-medium placeholder:text-gray-400";
+  // 몽글몽글한 둥근 입력창 스타일
+  const inputStyle = "w-full px-6 py-4 bg-white border-2 border-sky-100 rounded-full focus:ring-4 focus:ring-sky-100 focus:border-sky-400 outline-none transition-all text-base font-bold text-gray-700 placeholder:font-medium placeholder:text-gray-300 shadow-sm";
 
   return (
-    <div className="min-h-screen bg-slate-900 pb-20 font-sans">
-      <div className="w-full px-4 pt-6 max-w-xl mx-auto">
+    <div className="min-h-screen bg-sky-50 pb-20 font-sans relative overflow-hidden">
+      {/* 배경 비눗방울 장식 */}
+      <div className="absolute top-0 right-0 w-72 h-72 bg-pink-200 rounded-full blur-[80px] opacity-40 -mr-32 -mt-32 pointer-events-none" />
+      <div className="absolute bottom-10 left-0 w-80 h-80 bg-blue-200 rounded-full blur-[80px] opacity-40 -ml-32 pointer-events-none" />
+
+      <div className="w-full px-4 pt-6 max-w-xl mx-auto relative z-10">
         <Link 
           to={`/check/${boothId}`}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-sky-600 text-white rounded-2xl font-black shadow-xl border-b-4 border-sky-800 active:border-b-0 active:translate-y-1 transition-all"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-white text-sky-500 rounded-full font-black shadow-lg border-2 border-sky-100 hover:scale-[1.02] active:scale-95 transition-all"
         >
           <span className="tracking-tight">🔍 내 신청 정보 확인하기</span>
         </Link>
       </div>
 
-      <div className="max-w-xl mx-auto my-8 p-8 bg-white rounded-[2.5rem] shadow-2xl border-t-8 border-yellow-400 relative">
+      <div className="max-w-xl mx-auto my-8 p-8 bg-white/90 backdrop-blur-md rounded-[3.5rem] shadow-xl shadow-sky-100 border-4 border-white relative z-10">
         <header className="text-center mb-10">
-          <div className="flex items-center justify-center gap-2 pb-[10px]">
+          <div className="flex items-center justify-center gap-2 pb-4">
             <div className="rounded-xl flex items-center justify-center">
-              <img className="inline-block w-60" src="/logo.png" alt="Logo" />
+              <img className="inline-block w-40 drop-shadow-md" src="/logo.png" alt="Logo" />
             </div>
-            {/* 텍스트 크기를 키우고 폰트 두께를 조절하여 로고와 균형을 맞춤 */}
-            <p className="text-md font-bold text-gray-500 pb-1">×</p>
+            <p className="text-xl font-bold text-sky-200 pb-1">×</p>
             <div className="rounded-xl flex items-center justify-center">
-              <img className="inline-block w-60" src="/logo_su.png" alt="Logo" />
+              <img className="inline-block w-40 drop-shadow-md" src="/logo_su.png" alt="Logo" />
             </div>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter">
-            2026년 광명시 청소년의 달<br/>기념행사 <span className="text-blue-600">오월의 난장</span><br/>체험부스 <span className="text-blue-400 font-extrabold">신청</span>
+          <h1 className="text-3xl font-black text-sky-900 leading-tight tracking-tighter">
+            2026년 광명시 청소년의 달<br/>기념행사 <span className="text-pink-400">오월의 난장</span><br/>체험부스 <span className="text-sky-500 font-extrabold">신청</span>
           </h1>
-          <span className="inline-block bg-slate-900 text-white text-xl font-black px-4 py-2 rounded-3xl mt-4 tracking-widest break-keep">
+          <span className="inline-block bg-yellow-400 text-white text-xl font-black px-6 py-2 rounded-full mt-5 tracking-widest break-keep shadow-md shadow-yellow-100">
             {boothInfo.name}
           </span>
         </header>
@@ -189,15 +189,14 @@ const UserForm = () => {
         {!isClosed ? (
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* [수정] availableTimes의 객체 구조(value, label)에 맞춰서 렌더링 */}
           {boothInfo.mode === 'time' && (
             <select 
-              className={`${inputStyle} font-bold`} 
+              className={`${inputStyle} font-bold appearance-none`} 
               value={formData.time}
               onChange={e => setFormData({...formData, time: e.target.value})}
               required
             >
-              <option value="" disabled>희망하는 체험시간을 선택하세요</option>
+              <option value="" disabled>희망하는 체험시간을 선택하세요 ☁️</option>
               {availableTimes.map(slot => (
                 <option key={slot.value} value={slot.value}>
                   {slot.label}
@@ -207,15 +206,15 @@ const UserForm = () => {
           )}
           
           {boothInfo.mode === 'fcfs' && (
-            <div className="p-6 bg-blue-50 rounded-2xl border-2 border-blue-100">
-              <p className="text-blue-700 font-bold text-center">
+            <div className="p-6 bg-sky-50 rounded-[2rem] border-2 border-sky-100">
+              <p className="text-sky-700 font-bold text-center leading-relaxed">
                 이 부스는 선착순으로 운영됩니다.<br/>
-                신청 후 바로 체험하시면 됩니다.
+                신청 후 바로 체험하시면 됩니다! 🫧
               </p>
             </div>
           )}
 
-          <p className="text-sm text-slate-700 ml-2 mb-1">* 신청자 이름이 아닌 참가자 이름으로 작성해주세요!</p>
+          <p className="text-sm text-sky-600 ml-4 mb-1 font-bold">* 신청자 이름이 아닌 참가자 이름으로 작성해주세요!</p>
           <input type="text" placeholder="참가자 성함 (실명 입력)" required className={inputStyle} 
             onChange={e => setFormData({...formData, name: e.target.value})} />
 
@@ -223,13 +222,13 @@ const UserForm = () => {
             {['남', '여'].map((g) => (
               <button key={g} type="button" 
                 onClick={() => setFormData({...formData, gender: g})}
-                className={`py-4 text-lg rounded-2xl font-black transition-all border-2 ${formData.gender === g ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-gray-200'}`}>
+                className={`py-4 text-lg rounded-full font-black transition-all border-2 ${formData.gender === g ? 'bg-sky-400 text-white border-sky-400 shadow-lg shadow-sky-200' : 'bg-white text-gray-400 border-sky-100 hover:border-sky-200'}`}>
                 {g}
               </button>
             ))}
           </div>
 
-          <select className={`${inputStyle} font-bold`} value={formData.ageGroup} onChange={e => setFormData({...formData, ageGroup: e.target.value})}>
+          <select className={`${inputStyle} font-bold appearance-none`} value={formData.ageGroup} onChange={e => setFormData({...formData, ageGroup: e.target.value})}>
             {["0~8세", "9~13세", "14~16세", "17~19세", "20~24세", "24세 이상"].map(age => <option key={age} value={age}>{age}</option>)}
           </select>
 
@@ -237,26 +236,22 @@ const UserForm = () => {
             onChange={e => setFormData({...formData, phone: e.target.value})} />
 
           <div className="space-y-3">
-            {/*<h4 className="text-sm font-black text-slate-700 ml-1">이용 약관 및 개인정보 수집</h4>
-            <div className="p-6 h-48 overflow-y-auto bg-slate-50 rounded-3xl text-sm leading-relaxed text-slate-800 border-2 border-gray-100 whitespace-pre-wrap font-medium shadow-inner text-left">
-              {terms || "약관을 불러오는 중입니다..."}
-            </div>*/}
-            <label className="flex items-center gap-4 cursor-pointer p-4 bg-slate-50 rounded-2xl border-2 border-transparent has-[:checked]:border-blue-600 transition-all">
-              <input type="checkbox" className="w-6 h-6 rounded-lg border-2 border-gray-300 text-blue-600"
+            <label className="flex items-center gap-4 cursor-pointer p-4 bg-white rounded-full border-2 border-sky-50 has-[:checked]:border-sky-300 has-[:checked]:bg-sky-50 transition-all shadow-sm">
+              <input type="checkbox" className="w-6 h-6 rounded-full border-2 border-gray-300 text-sky-400 focus:ring-sky-200"
                 checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-              <span className="text-sm font-black text-slate-700">위 체험부스를 신청합니다</span>
+              <span className="text-sm font-black text-sky-800">위 신청정보가 맞습니다</span>
             </label>
           </div>
 
-          <button className="w-full bg-blue-600 text-white py-6 rounded-3xl font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 active:scale-95">
-            신청서 제출하기
+          <button className="w-full bg-gradient-to-r from-sky-400 to-blue-400 text-white py-5 rounded-full font-black text-xl hover:shadow-lg hover:shadow-sky-200 transition-all active:scale-95">
+            신청서 제출하기 🫧
           </button>
         </form>
         ) : (
           <div className="py-16 text-center space-y-4 animate-fade-in">
-            <div className="text-6xl mb-6 shadow-inner rounded-full inline-block p-6 bg-slate-50">🔒</div>
-            <h2 className="text-2xl font-black text-slate-800">현재 접수가 마감되었습니다.</h2>
-            <p className="text-slate-500 font-medium">부스 운영이 종료되었거나 신청 인원이 가득 찼습니다.</p>
+            <div className="text-6xl mb-6 shadow-sm rounded-full inline-block p-6 bg-sky-50 border-4 border-white">🌙</div>
+            <h2 className="text-2xl font-black text-sky-900">현재 접수가 마감되었습니다.</h2>
+            <p className="text-sky-600 font-medium">부스 운영이 종료되었거나 신청 인원이 가득 찼습니다.</p>
           </div>
         )}
       </div>
