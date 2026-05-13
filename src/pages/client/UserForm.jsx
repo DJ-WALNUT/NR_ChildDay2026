@@ -168,11 +168,18 @@ const UserForm = () => {
 
       <div className="max-w-xl mx-auto my-8 p-8 bg-white rounded-[2.5rem] shadow-2xl border-t-8 border-yellow-400 relative">
         <header className="text-center mb-10">
+          <div className="flex items-center justify-center gap-2 pb-[10px]">
+            <div className="rounded-xl flex items-center justify-center">
+              <img className="inline-block w-60" src="/logo.png" alt="Logo" />
+            </div>
+            {/* 텍스트 크기를 키우고 폰트 두께를 조절하여 로고와 균형을 맞춤 */}
+            <p className="text-md font-bold text-gray-500 pb-1">×</p>
             <div className="rounded-xl flex items-center justify-center">
               <img className="inline-block w-60" src="/logo_su.png" alt="Logo" />
             </div>
+          </div>
           <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter">
-            2026 오월의 난장<span className="text-blue-600">PAAN</span> <br/>체험부스 <span className="text-blue-400 font-extrabold">신청</span>
+            2026년 광명시 청소년의 달<br/>기념행사 <span className="text-blue-600">오월의 난장</span><br/>체험부스 <span className="text-blue-400 font-extrabold">신청</span>
           </h1>
           <span className="inline-block bg-slate-900 text-white text-xl font-black px-4 py-2 rounded-3xl mt-4 tracking-widest break-keep">
             {boothInfo.name}
@@ -230,14 +237,14 @@ const UserForm = () => {
             onChange={e => setFormData({...formData, phone: e.target.value})} />
 
           <div className="space-y-3">
-            <h4 className="text-sm font-black text-slate-700 ml-1">이용 약관 및 개인정보 수집</h4>
+            {/*<h4 className="text-sm font-black text-slate-700 ml-1">이용 약관 및 개인정보 수집</h4>
             <div className="p-6 h-48 overflow-y-auto bg-slate-50 rounded-3xl text-sm leading-relaxed text-slate-800 border-2 border-gray-100 whitespace-pre-wrap font-medium shadow-inner text-left">
               {terms || "약관을 불러오는 중입니다..."}
-            </div>
+            </div>*/}
             <label className="flex items-center gap-4 cursor-pointer p-4 bg-slate-50 rounded-2xl border-2 border-transparent has-[:checked]:border-blue-600 transition-all">
               <input type="checkbox" className="w-6 h-6 rounded-lg border-2 border-gray-300 text-blue-600"
                 checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-              <span className="text-sm font-black text-slate-700">모든 약관에 동의합니다.</span>
+              <span className="text-sm font-black text-slate-700">위 신청정보가 맞습니다</span>
             </label>
           </div>
 

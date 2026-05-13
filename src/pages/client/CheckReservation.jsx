@@ -100,7 +100,7 @@ const CheckReservation = () => {
         </div>
 
         <h1 className="text-4xl font-black text-white text-center mb-8 tracking-tighter">
-          예약정보 <span className="text-yellow-400 underline underline-offset-8">확인</span>
+          신청정보 <span className="text-yellow-400 underline underline-offset-8">확인</span>
         </h1>
 
         
