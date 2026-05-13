@@ -181,7 +181,7 @@ const UserForm = () => {
           <h1 className="text-3xl font-black text-sky-900 leading-tight tracking-tighter">
             2026년 광명시 청소년의 달<br/>기념행사 <span className="text-pink-400">오월의 난장</span><br/>체험부스 <span className="text-sky-500 font-extrabold">신청</span>
           </h1>
-          <span className="inline-block bg-yellow-400 text-white text-xl font-black px-6 py-2 rounded-full mt-5 tracking-widest break-keep shadow-md shadow-yellow-100">
+          <span className="inline-block bg-yellow-400 text-white text-xl font-black px-6 py-2 rounded-3xl mt-5 tracking-widest break-keep shadow-md shadow-yellow-100">
             {boothInfo.name}
           </span>
         </header>
@@ -239,7 +239,7 @@ const UserForm = () => {
             <label className="flex items-center gap-4 cursor-pointer p-4 bg-white rounded-full border-2 border-sky-50 has-[:checked]:border-sky-300 has-[:checked]:bg-sky-50 transition-all shadow-sm">
               <input type="checkbox" className="w-6 h-6 rounded-full border-2 border-gray-300 text-sky-400 focus:ring-sky-200"
                 checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-              <span className="text-sm font-black text-sky-800">위 신청정보가 맞습니다</span>
+              <span className="text-sm font-black text-sky-800">위 체험부스를 신청합니다</span>
             </label>
           </div>
 

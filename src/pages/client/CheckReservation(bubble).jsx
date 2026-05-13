@@ -99,7 +99,7 @@ const CheckReservation = () => {
         </h1>
         
         <div className="text-center mb-10">
-          <span className="bg-white text-sky-600 border-2 border-sky-200 shadow-sm px-6 py-2 rounded-full text-2xl font-black tracking-widest inline-block break-keep">
+          <span className="bg-white text-sky-600 border-2 border-sky-200 shadow-sm px-6 py-2 rounded-3xl text-2xl font-black tracking-widest inline-block break-keep">
             {boothInfo ? boothInfo.name : "부스이름 확인 중 ☁️"}
           </span>
         </div>
