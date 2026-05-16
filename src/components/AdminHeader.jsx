@@ -13,6 +13,7 @@ const AdminHeader = () => {
         <nav className="flex gap-8 h-full">
           <Link to="/manage" className={`flex items-center px-1 font-bold ${location.pathname === '/manage' ? activeClass : inactiveClass}`}>대시보드</Link>
           <Link to="/manage/booths" className={`flex items-center px-1 font-bold ${location.pathname.startsWith('/manage/booths') ? activeClass : inactiveClass}`}>부스관리</Link>
+          <Link to="/manage/summary" className={`flex items-center px-1 font-bold ${location.pathname === '/manage/summary' ? activeClass : inactiveClass}`}>합계실적</Link>
         </nav>
       </div>
     </header>

@@ -4,7 +4,7 @@ import AdminHeader from '../../components/AdminHeader';
 import Footer from '../../components/Footer';
 
 const AdminMain = () => {
-  const [stats, setStats] = useState({ total: 0, booths: 0 });
+  const [stats, setStats] = useState({ total: 0, today: 0, activeBooths: 0, totalBooths: 0 });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -19,11 +19,19 @@ const AdminMain = () => {
         // 1. 부스 현황 분리
         const activeBoothsCount = boothData.filter(b => b.is_active).length;
         
-        // 2. 오늘 예약자 계산 (백엔드에 생성일자 필드 'created_at'이 있다고 가정)
-        const todayString = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD" 형태
-        const todayResCount = resData.filter(r => 
-          r.created_at && r.created_at.startsWith(todayString)
-        ).length;
+        // 2. 오늘 예약자 계산 (Date 객체를 활용한 안전한 비교)
+        const today = new Date();
+        const todayResCount = resData.filter(r => {
+          if (!r.created_at) return false; // 백엔드에 created_at이 없는 경우 예외 처리
+          
+          const resDate = new Date(r.created_at);
+          // 로컬 타임존(한국 시간) 기준으로 연/월/일이 일치하는지 확인
+          return (
+            resDate.getFullYear() === today.getFullYear() &&
+            resDate.getMonth() === today.getMonth() &&
+            resDate.getDate() === today.getDate()
+          );
+        }).length;
 
         setStats({ 
           total: resData.length, 
@@ -31,7 +39,9 @@ const AdminMain = () => {
           activeBooths: activeBoothsCount,
           totalBooths: boothData.length 
         });
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+        console.error("통계 데이터 로드 실패:", e); 
+      }
     };
     fetchStats();
   }, []);
