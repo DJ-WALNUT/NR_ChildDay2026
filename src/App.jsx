@@ -6,6 +6,7 @@ import AdminBoothList from './pages/admin/AdminBoothList';
 import AdminDetail from './pages/admin/AdminDetail';
 import AdminMain from './pages/admin/AdminMain';
 import AdminSummary from './pages/admin/AdminSummary';
+import AdminBoothManager from './pages/admin/AdminBoothManager';
 import AdminRoute from './components/AdminRoute'; // [추가]
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
             <Route path="/manage/booths" element={<AdminBoothList />} />{/* 5. 부스 목록 관리 (추가/삭제/상태변경) */}
             <Route path="/manage/booths/:boothId" element={<AdminDetail />} />{/* 6. 특정 부스 상세 대시보드 (신청자 명단) */}
             <Route path="/manage/summary" element={<AdminSummary />} />
+            <Route path="/manage/batch" element={<AdminBoothManager />} />
         </Routes>
       </div>
     </Router>
