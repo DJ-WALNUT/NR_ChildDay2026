@@ -172,11 +172,11 @@ const UserForm = () => {
             <div className="rounded-xl flex items-center justify-center">
               <img className="inline-block w-60" src="/logo.png" alt="Logo" />
             </div>
-            {/* 텍스트 크기를 키우고 폰트 두께를 조절하여 로고와 균형을 맞춤 */}
+            {/* 텍스트 크기를 키우고 폰트 두께를 조절하여 로고와 균형을 맞춤 
             <p className="text-md font-bold text-gray-500 pb-1">×</p>
             <div className="rounded-xl flex items-center justify-center">
               <img className="inline-block w-60" src="/logo_su.png" alt="Logo" />
-            </div>
+            </div>*/}
           </div>
           <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter">
             2026년 광명시 청소년의 달<br/>기념행사 <span className="text-blue-600">오월의 난장</span><br/>체험부스 <span className="text-blue-400 font-extrabold">신청</span>
