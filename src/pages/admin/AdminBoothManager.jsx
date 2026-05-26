@@ -118,68 +118,6 @@ const AdminBoothManager = () => {
     <div className="min-h-screen bg-slate-50">
       <AdminHeader />
       <main className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
-        
-        {/* --- 신규 부스 추가 폼 (기존과 동일) --- */}
-        <div className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-slate-900 shadow-xl space-y-6">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tighter border-b-2 border-slate-100 pb-4">새 부스 만들기</h2>
-          <div className="space-y-4">
-            <div>
-              <label className={labelStyle}>부스 이름</label>
-              <input className={inputStyle} placeholder="부스 이름 입력" value={newBoothName} onChange={(e) => setNewBoothName(e.target.value)} />
-            </div>
-            <div>
-              <label className={labelStyle}>운영 모드</label>
-              <div className="flex gap-2">
-                <button onClick={() => setNewBoothMode("time")} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${newBoothMode === 'time' ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}>⏱️ 타임별 예약</button>
-                <button onClick={() => setNewBoothMode("fcfs")} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${newBoothMode === 'fcfs' ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}>🏃‍♂️ 현장 선착순</button>
-              </div>
-            </div>
-            {/* ... 중략 (조건부 렌더링 설정 부분은 기존 유지) ... */}
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
-               {newBoothMode === 'time' ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className={labelStyle}>시작 시각</label>
-                    <div className="relative">
-                      <input type="number" min="0" max="23" className={inputStyle} value={startHour} onChange={e => setStartHour(e.target.value)} />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">시</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelStyle}>종료 시각</label>
-                    <div className="relative">
-                      <input type="number" min="0" max="24" className={inputStyle} value={endHour} onChange={e => setEndHour(e.target.value)} />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">시</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelStyle}>시간당 타임수</label>
-                    <div className="relative">
-                      <input type="number" min="1" className={inputStyle} value={slotsPerHour} onChange={e => setSlotsPerHour(e.target.value)} />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">개</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelStyle}>타임당 인원</label>
-                    <div className="relative">
-                      <input type="number" min="1" className={inputStyle} value={limitPerSlot} onChange={e => setLimitPerSlot(e.target.value)} />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">명</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full md:w-1/2">
-                  <label className={labelStyle}>총 선착순 인원 제한</label>
-                  <div className="relative">
-                    <input type="number" min="1" className={inputStyle} value={totalLimit} onChange={e => setTotalLimit(e.target.value)} />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">명</span>
-                  </div>
-                </div>
-              )}
-            </div>
-            <button onClick={addBooth} className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-lg hover:bg-slate-800 transition-colors shadow-xl">부스 추가하기</button>
-          </div>
-        </div>
 
         {/* --- 배치 관리 섹션 (신규 추가) --- */}
         <div className="bg-white p-6 rounded-[2rem] border-2 border-blue-500 shadow-lg sticky top-20 z-40 space-y-4">

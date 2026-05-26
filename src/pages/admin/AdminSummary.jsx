@@ -99,7 +99,9 @@ const AdminSummary = () => {
               <span className="text-[10px] font-black px-2 py-0.5 rounded-sm bg-green-500 text-white break-keep uppercase">
                 통계 모아보기
               </span>
-              <h1 className="text-4xl font-black tracking-tighter leading-none">전체 부스 <span className="text-green-400 font-extrabold">합계실적</span></h1>
+              <h1 className="text-4xl font-black tracking-tighter leading-none break-keep">
+                전체 부스 <span className="text-green-400 font-extrabold">합계실적</span>
+              </h1>
             </div>
             <p className="text-slate-400 font-bold text-sm mt-2">
               선택된 부스 수: {selectedBooths.length} / {booths.length}개
@@ -115,10 +117,10 @@ const AdminSummary = () => {
         {/* 컨트롤 패널 (드롭다운) */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-black text-slate-800">합계에 포함할 부스 선택</h3>
+            <h3 className="text-lg font-black text-slate-800 break-keep">합계에 포함할 부스 선택</h3>
             <div className="flex gap-2">
-              <button onClick={handleSelectAll} className="px-4 py-2 text-sm font-bold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">전체 선택</button>
-              <button onClick={handleDeselectAll} className="px-4 py-2 text-sm font-bold bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors">전체 해제</button>
+              <button onClick={handleSelectAll} className="px-4 py-2 text-sm font-bold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors break-keep">전체 선택</button>
+              <button onClick={handleDeselectAll} className="px-4 py-2 text-sm font-bold bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors break-keep">전체 해제</button>
             </div>
           </div>
 
