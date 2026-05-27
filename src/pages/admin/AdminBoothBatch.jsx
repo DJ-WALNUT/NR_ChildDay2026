@@ -188,7 +188,7 @@ const AdminBoothBatch = () => {
                   checked={selectedIds.includes(booth.id)}
                   onChange={() => toggleSelection(booth.id)}
                 />
-                <div onClick={() => navigate(`/manage/booths/${booth.id}`)} className="cursor-pointer truncate">
+                <div onClick={() => navigate(`/manage/booths/${booth.id}`)} className="cursor-pointer flex-1">
                   
                   {/* [추가] 소속 행사 라벨 */}
                   <div className="mb-2">
@@ -201,7 +201,7 @@ const AdminBoothBatch = () => {
                     <span className={`text-[10px] shrink-0 font-black px-2 py-0.5 rounded-sm uppercase ${booth.mode === 'fcfs' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
                       {booth.mode === 'fcfs' ? '선착순' : '타임별'}
                     </span>
-                    <h3 className="text-xl font-black text-slate-900 truncate">{booth.name}</h3>
+                    <h3 className="text-xl font-black text-slate-900">{booth.name}</h3>
                   </div>
                   <p className="text-slate-500 font-bold text-sm">
                     현재 신청 인원: <span className="text-blue-600 font-black">{booth.count}</span>명

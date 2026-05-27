@@ -109,6 +109,7 @@ const AdminBoothList = () => {
     : booths.filter(b => b.event_id === parseInt(filterEventId));
 
   const inputStyle = "w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold text-slate-700 transition-all";
+  const numberInputStyle = "w-full pl-4 pr-12 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold text-slate-700 transition-all";
   const labelStyle = "block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 ml-1";
 
   return (
@@ -176,28 +177,28 @@ const AdminBoothList = () => {
                   <div>
                     <label className={labelStyle}>시작 시각</label>
                     <div className="relative">
-                      <input type="number" min="0" max="23" className={inputStyle} value={startHour} onChange={e => setStartHour(e.target.value)} />
+                      <input type="number" min="0" max="23" className={numberInputStyle} value={startHour} onChange={e => setStartHour(e.target.value)} />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">시</span>
                     </div>
                   </div>
                   <div>
                     <label className={labelStyle}>종료 시각</label>
                     <div className="relative">
-                      <input type="number" min="0" max="24" className={inputStyle} value={endHour} onChange={e => setEndHour(e.target.value)} />
+                      <input type="number" min="0" max="24" className={numberInputStyle} value={endHour} onChange={e => setEndHour(e.target.value)} />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">시</span>
                     </div>
                   </div>
                   <div>
                     <label className={labelStyle}>시간당 타임수</label>
                     <div className="relative">
-                      <input type="number" min="1" className={inputStyle} value={slotsPerHour} onChange={e => setSlotsPerHour(e.target.value)} />
+                      <input type="number" min="1" className={numberInputStyle} value={slotsPerHour} onChange={e => setSlotsPerHour(e.target.value)} />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">개</span>
                     </div>
                   </div>
                   <div>
                     <label className={labelStyle}>타임당 인원</label>
                     <div className="relative">
-                      <input type="number" min="1" className={inputStyle} value={limitPerSlot} onChange={e => setLimitPerSlot(e.target.value)} />
+                      <input type="number" min="1" className={numberInputStyle} value={limitPerSlot} onChange={e => setLimitPerSlot(e.target.value)} />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">명</span>
                     </div>
                   </div>
@@ -264,7 +265,7 @@ const AdminBoothList = () => {
                      </span>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-1 ">
+                  <div className="flex items-center gap-2 mb-1">
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-sm break-keep uppercase ${booth.mode === 'fcfs' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
                       {booth.mode === 'fcfs' ? '선착순' : '타임별'}
                     </span>

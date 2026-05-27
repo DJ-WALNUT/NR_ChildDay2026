@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ScrollToTop from './components/ScrollToTop';
 import LandingPage from './pages/LandingPage';
 import UserForm from './pages/client/UserForm';
 import CheckReservation from './pages/client/CheckReservation';
@@ -13,6 +14,7 @@ import AdminRoute from './components/AdminRoute'; // [추가]
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen bg-gray-50">
         <Routes>
           <Route path="/" element={<LandingPage />} />{/* 1. 메인 랜딩 (부스 목록) */}
