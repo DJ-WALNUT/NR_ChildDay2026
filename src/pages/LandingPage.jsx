@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
+import Footer from '../components/Footer';
 
 const LandingPage = () => {
   const [booths, setBooths] = useState([]);
@@ -44,7 +45,7 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white p-8">
       <div className="max-w-md mx-auto pt-20">
-        <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tighter break-keep">2026년 광명시 청소년의 달 기념행사 오월의 난장 <br/> 체험부스</h1>
+        <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tighter break-keep">체험부스 목록에서<br/>부스를 누르고<br/>신청하기</h1>
         <p className="text-slate-500 font-bold mb-12">체험하고 싶은 부스를 선택해 주세요.</p>
         
         <div className="grid gap-6">
@@ -75,6 +76,8 @@ const LandingPage = () => {
           )}
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };
