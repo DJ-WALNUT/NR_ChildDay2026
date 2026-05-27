@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
+import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import AdminHeader from '../../components/AdminHeader';
 import Footer from '../../components/Footer';
@@ -111,6 +112,14 @@ const AdminDetail = () => {
     reservations.filter(r => r.status !== 'noshow').length, 
   [reservations]);
 
+  const toggleBooth = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/booths/${id}/toggle`, { method: 'PATCH', });
+      if (res.ok) { fetchData(); // 데이터 새로고침
+      }
+    } catch (e) { console.error("상태 변경 실패", e); }
+  };
+
   const toggleNoShow = async (id) => {
     await fetch(`${API_BASE_URL}/api/reservations/${id}/toggle`, { method: 'PATCH' });
     setReservations(prev => prev.map(r => r.id === id ? { ...r, status: r.status === 'noshow' ? 'normal' : 'noshow' } : r));
@@ -180,6 +189,34 @@ const AdminDetail = () => {
     }
   };
 
+  // QR 다운로드 함수 (ID를 받아 해당 요소를 다운로드)
+  const downloadQR = (elementId, fileName) => {
+    const svg = document.getElementById(elementId);
+    if (!svg) return;
+  
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+  
+    // [수정] 해상도를 4배 키워서 선명하게 만듦
+    const scale = 4; 
+    const img = new Image();
+  
+    img.onload = () => {
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      ctx.scale(scale, scale); // 캔버스 배율 조정
+      ctx.drawImage(img, 0, 0);
+    
+      const pngUrl = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = `${fileName}.png`;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
   const inputStyle = "w-full px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-blue-500 outline-none font-bold text-slate-700 transition-all text-sm";
   const labelStyle = "block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 ml-1";
 
@@ -213,6 +250,32 @@ const AdminDetail = () => {
               <div className="text-4xl font-black text-blue-400 tabular-nums">{totalReservations}</div>
             </div>
             
+            {boothInfo && (
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex justify-between items-start grid grid-cols-1 gap-1">
+                  <div>
+                    <p className="text-slate-500 font-bold">현재 상태: 
+                      <span className={boothInfo.is_active ? "text-green-600 ml-2" : "text-red-500 ml-2"}>
+                        {boothInfo.is_active ? "운영 중" : "마감됨"}
+                      </span>
+                    </p>
+                  </div>
+      
+                  {/* 운영 상태 변경 버튼 */}
+                  <button 
+                    onClick={() => toggleBooth(boothInfo.id)}
+                    className={`flex px-6 py-2 rounded-xl font-bold transition-all ${
+                      boothInfo.is_active 
+                      ? 'bg-red-50 text-red-500 border border-red-100' 
+                      : 'bg-green-100 text-green-700 border border-green-200'
+                    }`}
+                  >
+                    {boothInfo.is_active ? "운영 마감하기" : "운영 시작하기"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button onClick={() => setIsEditing(!isEditing)} className={`px-4 py-3 rounded-xl text-sm font-black transition-all shadow-lg ${isEditing ? 'bg-blue-600 text-white' : 'bg-slate-700 text-white hover:bg-slate-600'}`}>
               {isEditing ? '수정 취소' : '설정 수정'}
             </button>
@@ -306,6 +369,47 @@ const AdminDetail = () => {
             </div>
           </div>
         )}
+
+        <section className="max-w-7xl mx-auto px-4 mt-8">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+            {/* 관리자 페이지 QR */}
+            <div className="flex grid grid-cols-1 items-center justify-between p-4 bg-gray-100 rounded-2xl border border-gray-200">
+              <div>
+                <h3 className="text-sm font-black text-slate-800">관리자 전용 QR</h3>
+                <p className="text-[11px] text-slate-500 font-bold mt-1 mb-1">현장 관리자 체크인용</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <QRCodeSVG
+                  id="admin-qr"
+                  value={`https://nrbooth.team-cluster.kr/manage/booths/${boothId}`}
+                  size={256} // 기존 50에서 256 이상으로 크게 키우세요.
+                  //level="H"  // 'H' 레벨은 QR 코드 내의 데이터를 더 높은 밀도로 압축하여 복원력을 높입니다.
+                  includeMargin={true} // 여백을 추가하여 인식률을 높입니다.
+                />
+                <button onClick={() => downloadQR("admin-qr", `${boothName}_관리자QR`)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-700 break-keep">다운로드</button>
+              </div>
+            </div>
+
+            {/* 신청서 페이지 QR */}
+            <div className="flex grid grid-cols-1 items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100">
+              <div>
+                <h3 className="text-sm font-black text-blue-900">사용자 신청 QR</h3>
+                <p className="text-[11px] text-blue-600 font-bold mt-1 mb-1">방문객 신청 페이지</p>
+              </div>
+              <div className="flex items-center gap-5">
+                <QRCodeSVG
+                  id="user-qr"
+                  value={`https://nrbooth.team-cluster.kr/reserve/${boothId}`}
+                  size={256} // 기존 50에서 256 이상으로 크게 키우세요.
+                  //level="H"  // 'H' 레벨은 QR 코드 내의 데이터를 더 높은 밀도로 압축하여 복원력을 높입니다.
+                  includeMargin={true} // 여백을 추가하여 인식률을 높입니다.
+                />
+                <button onClick={() => downloadQR("user-qr", `${boothName}_신청QR`)} className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 break-keep">다운로드</button>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* 연령별/성별 통계 표 섹션 */}
         <section className="bg-white rounded-[2rem] shadow-xl border-4 border-slate-900 overflow-hidden">
