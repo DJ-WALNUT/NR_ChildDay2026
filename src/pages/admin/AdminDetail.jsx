@@ -5,40 +5,49 @@ import * as XLSX from 'xlsx';
 import AdminHeader from '../../components/AdminHeader';
 import Footer from '../../components/Footer';
 
-const AdminDashboard = () => {
+const AdminDetail = () => {
   const { boothId } = useParams();
   const navigate = useNavigate();
   
   const [reservations, setReservations] = useState([]);
   const [boothName, setBoothName] = useState("");
-  const [boothInfo, setBoothInfo] = useState(null); // 전체 부스 정보 상태 추가
+  const [boothInfo, setBoothInfo] = useState(null); 
+  const [events, setEvents] = useState([]); // [추가] 행사 목록 상태
 
   // 수정 모드 상태 관리
   const [isEditing, setIsEditing] = useState(false);
-  // [수정] editData State에 use_waitlist 추가
+  
+  // [수정] editData State에 event_id 추가
   const [editData, setEditData] = useState({
-    name: '', mode: 'time', use_waitlist: false, total_limit: 0, limit_per_slot: 0, start_hour: 11, end_hour: 16, slots_per_hour: 3
+    event_id: '', name: '', mode: 'time', use_waitlist: false, total_limit: 0, limit_per_slot: 0, start_hour: 11, end_hour: 16, slots_per_hour: 3
   });
 
   const fetchData = async () => {
     try {
-      // 1. 예약 데이터 호출
-      const resResponse = await fetch(`${API_BASE_URL}/api/booths/${boothId}/reservations`);
+      // [수정] 이벤트 데이터도 함께 호출합니다.
+      const [resResponse, boothResponse, eventResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/booths/${boothId}/reservations`),
+        fetch(`${API_BASE_URL}/api/booths`),
+        fetch(`${API_BASE_URL}/api/events`)
+      ]);
+      
       const resData = await resResponse.json();
+      const boothList = await boothResponse.json();
+      const eventList = await eventResponse.json();
+
       setReservations(resData.reservations);
       setBoothName(resData.boothName);
+      setEvents(eventList);
 
-      // 2. 부스 상세 설정 데이터 호출
-      const boothResponse = await fetch(`${API_BASE_URL}/api/booths`);
-      const boothList = await boothResponse.json();
       const currentBooth = boothList.find(b => b.id === parseInt(boothId));
       
       if (currentBooth) {
         setBoothInfo(currentBooth);
         setEditData({
+          event_id: currentBooth.event_id || '', // [추가] 소속 행사 ID 매핑
           name: currentBooth.name,
           mode: currentBooth.mode,
-          use_waitlist: currentBooth.use_waitlist || false, // 백엔드 필드 매핑
+          use_waitlist: currentBooth.use_waitlist || false, 
           total_limit: currentBooth.total_limit,
           limit_per_slot: currentBooth.limit_per_slot,
           start_hour: currentBooth.start_hour,
@@ -60,9 +69,10 @@ const AdminDashboard = () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          event_id: parseInt(editData.event_id, 10), // [추가] 변경된 행사 ID 전송
           name: editData.name,
           mode: editData.mode,
-          use_waitlist: editData.use_waitlist, // [추가] 대기자 운영여부
+          use_waitlist: editData.use_waitlist,
           total_limit: parseInt(editData.total_limit, 10),
           limit_per_slot: parseInt(editData.limit_per_slot, 10),
           start_hour: parseInt(editData.start_hour, 10),
@@ -117,37 +127,25 @@ const AdminDashboard = () => {
     setReservations(prev => prev.filter(r => r.id !== id));
   };
 
-const sortedReservations = useMemo(() => {
+  const sortedReservations = useMemo(() => {
     return [...reservations].sort((a, b) => {
-      // 1. 타임이 완전히 동일한 경우 (예: 둘 다 "11시 A타임"이거나 둘 다 "선착순 접수"인 경우)
-      // id 값(생성된 순서)을 비교하여 먼저 신청한 사람이 위로 오게 정렬
-      if (a.time === b.time) {
-        return a.id - b.id;
-      }
+      if (a.time === b.time) return a.id - b.id;
 
-      // 2. 타임이 다른 경우 기존처럼 숫자(시간) 우선 추출하여 비교
       const matchA = a.time.match(/\d+/);
       const matchB = b.time.match(/\d+/);
 
       if (matchA && matchB) {
         const timeA = parseInt(matchA[0]);
         const timeB = parseInt(matchB[0]);
-        
-        // 시간이 다르면 빠른 시간 순으로 정렬
         if (timeA !== timeB) return timeA - timeB;
-        
-        // 시간(숫자)은 같지만 텍스트가 다른 경우 (예: 11시 A타임 vs 11시 B타임)
         return a.time.localeCompare(b.time);
       }
-      
       return a.time.localeCompare(b.time);
     });
   }, [reservations]);
 
-  // [추가] 1. 검색어 상태 관리
   const [searchTerm, setSearchTerm] = useState("");
 
-  // [추가] 2. 검색어가 있을 경우 필터링된 데이터 생성
   const filteredReservations = useMemo(() => {
     if (!searchTerm.trim()) return sortedReservations;
     return sortedReservations.filter(r => 
@@ -163,7 +161,9 @@ const sortedReservations = useMemo(() => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "신청자명단");
-    XLSX.writeFile(wb, `${boothName}_명단.xlsx`);
+    // [수정] 파일명에 행사 이름도 포함되도록 수정
+    const eventPrefix = boothInfo?.event_name ? `[${boothInfo.event_name}]_` : '';
+    XLSX.writeFile(wb, `${eventPrefix}${boothName}_명단.xlsx`);
   };
 
   const clearAllData = async () => {
@@ -189,11 +189,17 @@ const sortedReservations = useMemo(() => {
         {/* 상단 대시보드 헤더 */}
         <header className="flex flex-col justify-between items-start gap-6 p-7 bg-slate-900 text-white rounded-[2rem] shadow-2xl border-b-8 border-blue-600">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              {/* [추가] 소속 행사 배지 표시 */}
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-sm bg-slate-100 text-slate-800 break-keep uppercase border border-slate-300">
+                {boothInfo?.event_name || '소속 행사 없음'}
+              </span>
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-sm break-keep uppercase ${boothInfo?.mode === 'fcfs' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
                 {boothInfo?.mode === 'fcfs' ? '선착순' : '타임별'}
               </span>
-              <h1 className="text-4xl font-black tracking-tighter leading-none">{boothName} <span className="text-blue-400 font-extrabold">현황</span></h1>
+              <h1 className="text-4xl font-black tracking-tighter leading-none w-full mt-2">
+                {boothName} <span className="text-blue-400 font-extrabold">현황</span>
+              </h1>
             </div>
             <p className="text-slate-400 font-bold text-sm">
               {boothInfo?.mode === 'fcfs' 
@@ -207,7 +213,6 @@ const sortedReservations = useMemo(() => {
               <div className="text-4xl font-black text-blue-400 tabular-nums">{totalReservations}</div>
             </div>
             
-            {/* 설정 수정 버튼 추가 */}
             <button onClick={() => setIsEditing(!isEditing)} className={`px-4 py-3 rounded-xl text-sm font-black transition-all shadow-lg ${isEditing ? 'bg-blue-600 text-white' : 'bg-slate-700 text-white hover:bg-slate-600'}`}>
               {isEditing ? '수정 취소' : '설정 수정'}
             </button>
@@ -220,14 +225,31 @@ const sortedReservations = useMemo(() => {
           </div>
         </header>
 
-        {/* 부스 설정 수정 패널 (isEditing이 true일 때만 표시) */}
+        {/* 부스 설정 수정 패널 */}
         {isEditing && (
           <div className="bg-white p-6 rounded-[2rem] border-2 border-blue-200 shadow-xl animate-fade-in-down">
             <h3 className="text-lg font-black text-slate-800 mb-4 border-b pb-2">부스 설정 수정</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className={labelStyle}>부스 이름</label>
-                <input className={inputStyle} value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+              
+              {/* [추가] 소속 행사 변경 드롭다운 */}
+              <div className="col-span-1 md:col-span-2 flex flex-col md:flex-row gap-6">
+                <div className="flex-1">
+                  <label className={labelStyle}>소속 행사 그룹</label>
+                  <select 
+                    className={inputStyle}
+                    value={editData.event_id}
+                    onChange={e => setEditData({...editData, event_id: e.target.value})}
+                  >
+                    <option value="" disabled>행사를 선택하세요</option>
+                    {[...events].sort((a, b) => b.id - a.id).map(ev => (
+                      <option key={ev.id} value={ev.id}>{ev.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className={labelStyle}>부스 이름</label>
+                  <input className={inputStyle} value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                </div>
               </div>
               
               <div>
@@ -238,7 +260,6 @@ const sortedReservations = useMemo(() => {
                 </div>
               </div>
 
-              {/* [추가] 대기자 명단 운영 여부 체크박스 */}
               <div className="col-span-1 md:col-span-2 flex items-center gap-3 bg-slate-50 border border-slate-200 p-4 rounded-xl">
                 <input 
                   type="checkbox" 
@@ -340,7 +361,7 @@ const sortedReservations = useMemo(() => {
             <div className="w-full md:w-72 relative">
               <input 
                 type="text" 
-                placeholder="이름 또는 식별번호(4자리) 검색" 
+                placeholder="이름 또는 식별번호 검색" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold text-slate-700 text-sm transition-all"
@@ -364,7 +385,7 @@ const sortedReservations = useMemo(() => {
                 {filteredReservations.map(r => (
                   <tr key={r.id} className={`font-bold transition-all ${
                     r.status === 'noshow' ? 'bg-red-50/50 opacity-40 grayscale italic' : 
-                    r.status === 'waiting' ? 'bg-orange-50/70' : // 관리자 페이지 대기자 행 강조
+                    r.status === 'waiting' ? 'bg-orange-50/70' : 
                     'hover:bg-blue-50/50'
                   }`}>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-blue-600 font-black text-lg tabular-nums tracking-tighter whitespace-nowrap">{r.time}</td>
@@ -379,7 +400,6 @@ const sortedReservations = useMemo(() => {
                     <td className="py-5 px-4 md:py-7 md:px-10 text-slate-900 font-black whitespace-nowrap">{r.phone}</td>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-slate-900 font-black whitespace-nowrap">{r.ageGroup}</td>
                     <td className="py-5 px-4 md:py-7 md:px-10 text-center whitespace-nowrap space-x-2">
-                      {/* 대기자 뱃지 추가 */}
                       {r.status === 'waiting' && <span className="px-2 py-1 mr-2 rounded text-[10px] bg-orange-500 text-white font-black">대기중</span>}
                       <button onClick={() => toggleNoShow(r.id)} className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${r.status === 'noshow' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'}`}>노쇼</button>
                       <button onClick={() => markAsCompleted(r.id)} className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${r.status === 'completed' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-400'}`}>체험완료</button>
@@ -393,14 +413,12 @@ const sortedReservations = useMemo(() => {
         </section>
       </div>
 
-      {/* [추가] 우하단 플로팅 버튼 그룹 (새로고침, 상단이동) */}
       <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
         <button 
           onClick={fetchData} 
           className="p-4 bg-slate-900 text-white rounded-full shadow-2xl hover:bg-blue-600 transition-all hover:-translate-y-1 group"
           title="새로고침"
         >
-          {/* 새로고침 아이콘 SVG */}
           <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
@@ -410,7 +428,6 @@ const sortedReservations = useMemo(() => {
           className="p-4 bg-slate-900 text-white rounded-full shadow-2xl hover:bg-yellow-400 hover:text-slate-900 transition-all hover:-translate-y-1"
           title="상단으로 이동"
         >
-          {/* 위 화살표 아이콘 SVG */}
           <svg fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
           </svg>
@@ -422,4 +439,4 @@ const sortedReservations = useMemo(() => {
   );
 };
 
-export default AdminDashboard;
+export default AdminDetail;

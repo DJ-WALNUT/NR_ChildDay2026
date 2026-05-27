@@ -11,10 +11,11 @@ const AdminHeader = () => {
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
         <h1 className="text-xl font-black text-slate-900 tracking-tighter">ADMIN CENTER</h1>
         <nav className="flex gap-8 h-full">
-          <Link to="/manage" className={`flex items-center px-1 font-bold ${location.pathname === '/manage' ? activeClass : inactiveClass}`}>대시보드</Link>
-          <Link to="/manage/booths" className={`flex items-center px-1 font-bold ${location.pathname.startsWith('/manage/booths') ? activeClass : inactiveClass}`}>부스관리</Link>
-          <Link to="/manage/summary" className={`flex items-center px-1 font-bold ${location.pathname === '/manage/summary' ? activeClass : inactiveClass}`}>합계실적</Link>
-          <Link to="/manage/batch" className={`flex items-center px-1 font-bold ${location.pathname === '/manage/batch' ? activeClass : inactiveClass}`}>운영마감</Link>
+          <Link to="/manage" className={`flex items-center px-1 font-bold break-keep ${location.pathname === '/manage' ? activeClass : inactiveClass}`}>대시보드</Link>
+          <Link to="/manage/events" className={`flex items-center px-1 font-bold break-keep ${location.pathname === '/manage/events' ? activeClass : inactiveClass}`}>행사관리</Link>
+          <Link to="/manage/booths" className={`flex items-center px-1 font-bold break-keep ${location.pathname.startsWith('/manage/booths') ? activeClass : inactiveClass}`}>부스관리</Link>
+          <Link to="/manage/summary" className={`flex items-center px-1 font-bold break-keep ${location.pathname === '/manage/summary' ? activeClass : inactiveClass}`}>합계실적</Link>
+          <Link to="/manage/batch" className={`flex items-center px-1 font-bold break-keep ${location.pathname === '/manage/batch' ? activeClass : inactiveClass}`}>운영마감</Link>
         </nav>
       </div>
     </header>

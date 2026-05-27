@@ -178,8 +178,9 @@ const UserForm = () => {
               <img className="inline-block w-60" src="/logo_su.png" alt="Logo" />
             </div>*/}
           </div>
-          <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter">
-            2026년 광명시 청소년의 달<br/>기념행사 <span className="text-blue-600">오월의 난장</span><br/>체험부스 <span className="text-blue-400 font-extrabold">신청</span>
+          <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tighter break-keep">
+            {boothInfo.event_name} <br/>
+            체험부스 <span className="text-blue-400 font-extrabold">신청</span>
           </h1>
           <span className="inline-block bg-slate-900 text-white text-xl font-black px-4 py-2 rounded-3xl mt-4 tracking-widest break-keep">
             {boothInfo.name}

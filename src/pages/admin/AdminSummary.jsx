@@ -4,26 +4,38 @@ import AdminHeader from '../../components/AdminHeader';
 import Footer from '../../components/Footer';
 
 const AdminSummary = () => {
+  const [events, setEvents] = useState([]); // [추가] 행사 목록
   const [booths, setBooths] = useState([]);
   const [allReservations, setAllReservations] = useState([]);
   const [selectedBooths, setSelectedBooths] = useState([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
-  // 합계 모드 State: 'simple'(단순합계) or 'strict'(엄격합계)
+  // UI 상태
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [calcMode, setCalcMode] = useState('simple'); 
+  const [filterEventId, setFilterEventId] = useState("all"); // [추가] 행사 필터
   
   const dropdownRef = useRef(null);
 
   // 데이터 로드
   const fetchData = async () => {
     try {
-      const boothRes = await fetch(`${API_BASE_URL}/api/booths`);
+      // [수정] 부스와 행사를 동시에 가져옵니다.
+      const [boothRes, eventRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/booths`),
+        fetch(`${API_BASE_URL}/api/events`)
+      ]);
       const boothData = await boothRes.json();
+      const eventData = await eventRes.json();
+      
       setBooths(boothData);
+      // 행사는 최신순으로 정렬
+      setEvents(eventData.sort((a, b) => b.id - a.id));
 
+      // 초기값: 모든 부스 선택
       const allBoothIds = boothData.map(b => b.id);
       setSelectedBooths(allBoothIds);
 
+      // 모든 부스의 예약 데이터를 병렬로 호출
       const allResPromises = boothData.map(async (booth) => {
         try {
           const res = await fetch(`${API_BASE_URL}/api/booths/${booth.id}/reservations`);
@@ -56,18 +68,21 @@ const AdminSummary = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // [추가] 행사 필터링이 적용된 부스 목록
+  const filteredBooths = useMemo(() => {
+    if (filterEventId === "all") return booths;
+    return booths.filter(b => b.event_id === parseInt(filterEventId));
+  }, [booths, filterEventId]);
+
   // 선택된 부스 및 계산 모드(단순/엄격)에 따른 데이터 필터링
   const processedReservations = useMemo(() => {
-    // 1. 먼저 선택된 부스의 예약만 필터링합니다.
     const filteredByBooth = allReservations.filter(r => selectedBooths.includes(r.booth_id));
 
-    // 2. 엄격 합계(strict) 모드일 경우 이름, 성별, 연령대가 모두 같은 경우에만 중복을 제거합니다.
     if (calcMode === 'strict') {
       const uniqueMap = new Map();
       filteredByBooth.forEach(r => {
-        // 이름_성별_연령대 형태의 고유 키 생성 (예: "홍길동_남_17~19세")
+        // 이름_성별_연령대 조합으로 동일인물 검증
         const uniqueKey = `${r.name}_${r.gender}_${r.ageGroup}`;
-        
         if (!uniqueMap.has(uniqueKey)) {
           uniqueMap.set(uniqueKey, r);
         }
@@ -78,7 +93,7 @@ const AdminSummary = () => {
     return filteredByBooth;
   }, [allReservations, selectedBooths, calcMode]);
 
-  // 통계 계산 로직 (필터링/중복제거가 완료된 processedReservations 기준)
+  // 통계 계산
   const stats = useMemo(() => {
     const ageGroups = ["0~8세", "9~13세", "14~16세", "17~19세", "20~24세", "24세 이상"];
     return ageGroups.map(group => {
@@ -96,8 +111,8 @@ const AdminSummary = () => {
     processedReservations.filter(r => r.status !== 'noshow').length, 
   [processedReservations]);
 
-  // 핸들러 함수들
-  const handleSelectAll = () => setSelectedBooths(booths.map(b => b.id));
+  // [수정] 핸들러 함수들 (필터링된 부스 목록 기준으로 동작)
+  const handleSelectAll = () => setSelectedBooths(filteredBooths.map(b => b.id));
   const handleDeselectAll = () => setSelectedBooths([]);
   const handleToggleBooth = (id) => {
     setSelectedBooths(prev => 
@@ -136,7 +151,7 @@ const AdminSummary = () => {
           </div>
         </header>
 
-        {/* 데이터 산출 방식 토글 (신규 추가) */}
+        {/* 데이터 산출 방식 토글 */}
         <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-2">
           <button
             onClick={() => setCalcMode('simple')}
@@ -175,11 +190,21 @@ const AdminSummary = () => {
 
         {/* 컨트롤 패널 (드롭다운) */}
         <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
             <h3 className="text-lg font-black text-slate-800 break-keep">합계에 포함할 부스 선택</h3>
-            <div className="flex gap-2">
-              <button onClick={handleSelectAll} className="px-4 py-2 text-sm font-bold bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors break-keep">전체 선택</button>
-              <button onClick={handleDeselectAll} className="px-4 py-2 text-sm font-bold bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors break-keep">전체 해제</button>
+            
+            {/* [추가] 행사 필터 선택 */}
+            <div className="w-full md:w-64">
+              <select 
+                className="w-full px-3 py-2 bg-slate-50 border-2 border-slate-200 text-slate-700 font-bold text-sm rounded-xl outline-none focus:border-green-500 cursor-pointer"
+                value={filterEventId}
+                onChange={(e) => setFilterEventId(e.target.value)}
+              >
+                <option value="all">모든 행사 부스 보기</option>
+                {events.map(event => (
+                  <option key={event.id} value={event.id}>{event.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -193,18 +218,39 @@ const AdminSummary = () => {
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 w-full mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-20 max-h-80 overflow-y-auto p-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                {booths.map(booth => (
-                  <label key={booth.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 cursor-pointer border border-transparent hover:border-slate-100 transition-all">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 shrink-0 accent-green-500 rounded cursor-pointer"
-                      checked={selectedBooths.includes(booth.id)}
-                      onChange={() => handleToggleBooth(booth.id)}
-                    />
-                    <span className="font-bold text-slate-800 select-none truncate text-sm">{booth.name}</span>
-                  </label>
-                ))}
+              <div className="absolute top-full left-0 w-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-20 max-h-80 overflow-y-auto p-4">
+                
+                {/* [추가] 필터링된 부스 전체 선택/해제 */}
+                <div className="flex gap-2 mb-3 pb-3 border-b border-slate-100 sticky top-0 bg-white">
+                  <button onClick={handleSelectAll} className="px-3 py-1.5 text-xs font-black bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors break-keep">현재 목록 전체 선택</button>
+                  <button onClick={handleDeselectAll} className="px-3 py-1.5 text-xs font-black bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors break-keep">전체 해제</button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {filteredBooths.length === 0 ? (
+                    <div className="col-span-1 md:col-span-2 text-center text-slate-400 font-bold text-sm py-4">해당 행사에 부스가 없습니다.</div>
+                  ) : (
+                    filteredBooths.map(booth => (
+                      <label key={booth.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 cursor-pointer border border-transparent hover:border-slate-100 transition-all">
+                        <input 
+                          type="checkbox" 
+                          className="w-5 h-5 shrink-0 accent-green-500 rounded cursor-pointer"
+                          checked={selectedBooths.includes(booth.id)}
+                          onChange={() => handleToggleBooth(booth.id)}
+                        />
+                        <div className="flex flex-col truncate">
+                          {/* [추가] 부스 소속 행사명 배지 */}
+                          {filterEventId === "all" && (
+                            <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded w-max mb-0.5">
+                              {booth.event_name}
+                            </span>
+                          )}
+                          <span className="font-bold text-slate-800 select-none truncate text-sm">{booth.name}</span>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -212,12 +258,12 @@ const AdminSummary = () => {
 
         {/* 연령별/성별 통계 표 섹션 */}
         <section className="bg-white rounded-[2rem] shadow-xl border-4 border-slate-900 overflow-hidden">
-          <div className="bg-slate-900 px-8 py-4 flex justify-between items-center">
+          <div className="bg-slate-900 px-8 py-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
               <span>{calcMode === 'simple' ? '📊' : '👤'}</span> 
               합산 연령 및 성별 총계
             </h3>
-            <span className="text-xs text-slate-400 font-bold bg-slate-800 px-2 py-1 rounded">
+            <span className="text-xs text-slate-400 font-bold bg-slate-800 px-2 py-1 rounded w-max">
               {calcMode === 'simple' ? '단순 합계 모드' : '엄격 합계 모드 (중복 제외)'}
             </span>
           </div>
