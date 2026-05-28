@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
-import * as XLSX from 'xlsx'; // [추가] 엑셀 처리를 위한 라이브러리
+import * as XLSX from 'xlsx';
 import AdminHeader from '../../components/AdminHeader';
 import Footer from '../../components/Footer';
 
@@ -22,9 +22,11 @@ const AdminBoothList = () => {
   const [slotsPerHour, setSlotsPerHour] = useState(3);
 
   const [filterEventId, setFilterEventId] = useState("all");
+  // [추가] 검색어 상태 관리
+  const [searchTerm, setSearchTerm] = useState("");
 
   const navigate = useNavigate();
-  const fileInputRef = useRef(null); // [추가] 엑셀 파일 인풋 참조
+  const fileInputRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -48,7 +50,6 @@ const AdminBoothList = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- 기존 단일 부스 추가 함수 ---
   const addBooth = async () => {
     if (!newBoothName.trim()) {
       alert("부스 이름을 입력해주세요.");
@@ -63,7 +64,7 @@ const AdminBoothList = () => {
       event_id: parseInt(newEventId, 10),
       name: newBoothName,
       mode: newBoothMode,
-      use_waitlist: false, // 기본적으로 대기자 불가
+      use_waitlist: false,
       total_limit: parseInt(totalLimit, 10) || 0,
       limit_per_slot: parseInt(limitPerSlot, 10) || 0,
       start_hour: parseInt(startHour, 10) || 11,
@@ -91,7 +92,6 @@ const AdminBoothList = () => {
     }
   };
 
-  // --- [신규] 엑셀 템플릿 다운로드 ---
   const downloadTemplate = () => {
     const wsData = [
       ["행사코드", "부스이름", "운영모드", "선착순 인원제한", "시작시각", "종료시각", "시간당 타임수", "타임당 인원"],
@@ -104,7 +104,6 @@ const AdminBoothList = () => {
     XLSX.writeFile(wb, "부스_대량추가_양식.xlsx");
   };
 
-  // --- [신규] 엑셀 파일 업로드 및 일괄 처리 로직 ---
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -127,7 +126,6 @@ const AdminBoothList = () => {
           const name = row['부스이름'];
           const rawMode = row['운영모드'] ? String(row['운영모드']).trim() : "";
 
-          // 1. 필수값 및 행사코드 검증
           if (!eventId || !validEventIds.includes(eventId)) {
             failedBooths.push(`[${name || '이름 누락'}] 사유: 존재하지 않거나 잘못된 행사코드(${row['행사코드']})`);
             continue;
@@ -137,9 +135,8 @@ const AdminBoothList = () => {
             continue;
           }
 
-          // 2. 운영모드 및 기본값 처리 (공란이면 선착순 100명)
           let parsedMode = 'fcfs';
-          let totalLimit = 100; // 공란 시 기본값 100명
+          let totalLimit = 100;
           let startHour = 11;
           let endHour = 16;
           let slotsPerHour = 3;
@@ -153,7 +150,6 @@ const AdminBoothList = () => {
             slotsPerHour = parseInt(row['시간당 타임수'], 10) || 3;
             limitPerSlot = parseInt(row['타임당 인원'], 10) || 0;
           } else {
-            // 선착순 모드 (입력값이 있으면 그 값을, 없으면 100을 유지)
             if (row['선착순 인원제한'] !== undefined && row['선착순 인원제한'] !== "") {
               totalLimit = parseInt(row['선착순 인원제한'], 10) || 100;
             }
@@ -163,7 +159,7 @@ const AdminBoothList = () => {
             event_id: eventId,
             name: name.trim(),
             mode: parsedMode,
-            use_waitlist: false, // 대기자 기본 불가
+            use_waitlist: false,
             total_limit: totalLimit,
             start_hour: startHour,
             end_hour: endHour,
@@ -171,7 +167,6 @@ const AdminBoothList = () => {
             limit_per_slot: limitPerSlot
           };
 
-          // API 호출 프로미스 배열에 추가
           promises.push(
             fetch(`${API_BASE_URL}/api/booths`, {
               method: 'POST',
@@ -192,11 +187,9 @@ const AdminBoothList = () => {
           return;
         }
 
-        // 모든 생성 요청을 병렬로 기다림
         await Promise.all(promises);
-        fetchData(); // 새 데이터 갱신
+        fetchData();
 
-        // 3. 결과 알림창 처리
         if (failedBooths.length > 0) {
           alert(`작업 완료. 단, 일부 부스 추가에 실패했습니다.\n\n[실패 목록]\n${failedBooths.join('\n')}`);
         } else {
@@ -206,7 +199,6 @@ const AdminBoothList = () => {
       } catch (error) {
         alert("엑셀 파일을 읽는 도중 오류가 발생했습니다. 양식을 확인해주세요.");
       } finally {
-        // 같은 파일을 다시 선택할 수 있도록 input 초기화
         e.target.value = '';
       }
     };
@@ -224,9 +216,12 @@ const AdminBoothList = () => {
     fetchData();
   };
 
-  const filteredBooths = filterEventId === "all" 
-    ? booths 
-    : booths.filter(b => b.event_id === parseInt(filterEventId));
+  // [수정] 행사 필터와 검색어 필터를 동시에 적용
+  const filteredBooths = booths.filter(b => {
+    const matchEvent = filterEventId === "all" || b.event_id === parseInt(filterEventId);
+    const matchSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchEvent && matchSearch;
+  });
 
   const inputStyle = "w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold text-slate-700 transition-all";
   const numberInputStyle = "w-full pl-4 pr-12 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold text-slate-700 transition-all";
@@ -242,7 +237,6 @@ const AdminBoothList = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b-2 border-slate-100 pb-4 gap-4">
             <h2 className="text-2xl font-black text-slate-900 tracking-tighter">새 부스 만들기</h2>
             
-            {/* [추가] 엑셀 대량 업로드 UI 영역 */}
             <div className="flex items-center gap-2">
               <button 
                 onClick={downloadTemplate}
@@ -350,25 +344,39 @@ const AdminBoothList = () => {
               <p className="text-slate-500 font-bold text-sm">개설된 최신순으로 정렬됩니다.</p>
             </div>
             
-            <div className="w-full md:w-64">
-              <select 
-                className="w-full px-4 py-2 bg-white border-2 border-blue-400 text-blue-700 font-black rounded-xl outline-none shadow-sm cursor-pointer"
-                value={filterEventId}
-                onChange={(e) => setFilterEventId(e.target.value)}
-              >
-                <option value="all">모든 행사 부스 보기</option>
-                {events.map(event => (
-                  <option key={event.id} value={event.id}>
-                    {event.name}
-                  </option>
-                ))}
-              </select>
+            {/* [추가] 검색창 및 행사 필터 그룹 */}
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <div className="w-full sm:w-64 relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+                <input 
+                  type="text"
+                  placeholder="부스 이름 검색..."
+                  className="w-full pl-9 pr-4 py-2 bg-white border-2 border-slate-200 rounded-xl outline-none font-bold text-slate-700 focus:border-blue-500 transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="w-full sm:w-64">
+                <select 
+                  className="w-full px-4 py-2 bg-white border-2 border-blue-400 text-blue-700 font-black rounded-xl outline-none shadow-sm cursor-pointer"
+                  value={filterEventId}
+                  onChange={(e) => setFilterEventId(e.target.value)}
+                >
+                  <option value="all">모든 행사 부스 보기</option>
+                  {events.map(event => (
+                    <option key={event.id} value={event.id}>
+                      {event.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           {filteredBooths.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-3xl border border-slate-200 text-slate-400 font-bold">
-              이 행사에 등록된 부스가 없습니다.
+              {searchTerm ? "검색 결과가 없습니다." : "이 행사에 등록된 부스가 없습니다."}
             </div>
           ) : (
             filteredBooths.map(booth => (
@@ -411,7 +419,6 @@ const AdminBoothList = () => {
           )}
         </div>
       </main>
-
       <Footer />
     </div>
   );

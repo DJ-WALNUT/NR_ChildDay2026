@@ -10,6 +10,9 @@ const AdminEventManager = () => {
   // 수정 모드 관리를 위한 State
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  
+  // [추가] 검색어 상태 관리
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchEvents = async () => {
     try {
@@ -53,7 +56,6 @@ const AdminEventManager = () => {
   };
 
   const saveEditedEvent = async (id) => {
-    // [추가] 1번 행사는 수정 시도 시 원천 차단
     if (id === 1) {
       alert("기본 행사(미분류)의 이름은 수정할 수 없습니다.");
       return;
@@ -86,7 +88,6 @@ const AdminEventManager = () => {
   };
 
   const deleteEvent = async (id) => {
-    // [추가] 1번 행사는 프론트엔드에서도 삭제 시도 원천 차단
     if (id === 1) {
       alert("기본 행사(미분류)는 시스템 보호를 위해 삭제할 수 없습니다.");
       return;
@@ -107,6 +108,11 @@ const AdminEventManager = () => {
       alert("서버 연결에 실패했습니다.");
     }
   };
+
+  // [추가] 검색어에 따라 행사 목록 필터링
+  const filteredEvents = events.filter(event => 
+    event.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const inputStyle = "w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold text-slate-700 transition-all";
 
@@ -140,13 +146,30 @@ const AdminEventManager = () => {
         </div>
 
         <div className="grid gap-4">
-          <h3 className="text-lg font-black text-slate-800 mb-2 ml-2">등록된 행사 목록 ({events.length}개)</h3>
-          {events.length === 0 ? (
+          <div className="flex flex-col md:flex-row justify-between md:items-end gap-4 ml-2 mb-2">
+            <h3 className="text-lg font-black text-slate-800">
+              등록된 행사 목록 ({filteredEvents.length}개 / 전체 {events.length}개)
+            </h3>
+            
+            {/* [추가] 검색창 UI */}
+            <div className="w-full md:w-72 relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+              <input 
+                type="text"
+                placeholder="행사 이름 검색..."
+                className="w-full pl-9 pr-4 py-2 bg-white border-2 border-slate-200 rounded-xl outline-none font-bold text-slate-700 focus:border-blue-500 transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {filteredEvents.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-3xl border border-slate-200 text-slate-400 font-bold">
-              아직 등록된 행사가 없습니다.
+              {searchTerm ? "검색 결과가 없습니다." : "아직 등록된 행사가 없습니다."}
             </div>
           ) : (
-            events.map((event) => (
+            filteredEvents.map((event) => (
               <div key={event.id} className="bg-white p-6 rounded-[1.5rem] border flex flex-col md:flex-row justify-between md:items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
                 
                 {editingId === event.id ? (
