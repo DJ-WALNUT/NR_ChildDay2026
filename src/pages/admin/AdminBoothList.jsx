@@ -375,7 +375,7 @@ const AdminBoothList = () => {
                 onClick={downloadBoothLinks}
                 className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-md flex items-center gap-2"
               >
-                <span>📗</span> 현재 목록의 링크 목록 엑셀 다운로드
+                <span>📗</span> 링크 목록 ({filteredBooths.length}개) 다운로드
               </button>
             </div>
             
