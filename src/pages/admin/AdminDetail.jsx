@@ -189,25 +189,76 @@ const AdminDetail = () => {
     }
   };
 
-  // QR 다운로드 함수 (ID를 받아 해당 요소를 다운로드)
-  const downloadQR = (elementId, fileName) => {
+  // QR 다운로드 함수 (ID를 받아 해당 요소를 QR + 텍스트 형태로 다운로드)
+  // title: QR 아래 표시할 부스 이름 (너무 길면 ...으로 생략)
+  // subtitle: 부스 이름 아래 표시할 페이지 구분 (예: 관리자 페이지 / 신청서 페이지)
+  const downloadQR = (elementId, fileName, title = "", subtitle = "") => {
     const svg = document.getElementById(elementId);
     if (!svg) return;
-  
+
     const svgData = new XMLSerializer().serializeToString(svg);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-  
+
     // [수정] 해상도를 4배 키워서 선명하게 만듦
-    const scale = 4; 
+    const scale = 4;
     const img = new Image();
-  
+
     img.onload = () => {
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      ctx.scale(scale, scale); // 캔버스 배율 조정
-      ctx.drawImage(img, 0, 0);
-    
+      const qrW = img.width * scale;
+      const qrH = img.height * scale;
+
+      // 텍스트 영역 설정 (QR 비율/여백은 그대로 두고 아래에만 추가)
+      const titleFontSize = 56;   // 부스 이름
+      const subFontSize = 48;     // 페이지 구분
+      const gapTop = 24;          // QR과 부스 이름 사이 간격
+      const gapBetween = 18;      // 부스 이름과 페이지 구분 사이 간격
+      const gapBottom = 48;       // 하단 여백
+      const hasText = title || subtitle;
+      const textAreaH = hasText
+        ? gapTop + titleFontSize + gapBetween + subFontSize + gapBottom
+        : 0;
+
+      canvas.width = qrW;
+      canvas.height = qrH + textAreaH;
+
+      // QR 그리기 (배경은 투명 유지)
+      ctx.drawImage(img, 0, 0, qrW, qrH);
+
+      if (hasText) {
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "#000000";
+
+        const centerX = qrW / 2;
+        const maxTextWidth = qrW * 0.9; // 좌우 약간의 여백 확보
+
+        // 부스 이름: 폭을 넘으면 ...으로 생략
+        ctx.font = `900 ${titleFontSize}px sans-serif`;
+        let displayTitle = title;
+        if (displayTitle && ctx.measureText(displayTitle).width > maxTextWidth) {
+          while (
+            displayTitle.length > 0 &&
+            ctx.measureText(displayTitle + "...").width > maxTextWidth
+          ) {
+            displayTitle = displayTitle.slice(0, -1);
+          }
+          displayTitle += "...";
+        }
+
+        let y = qrH + gapTop;
+        if (displayTitle) {
+          ctx.fillText(displayTitle, centerX, y);
+          y += titleFontSize + gapBetween;
+        }
+
+        // 페이지 구분 (관리자 페이지 / 신청서 페이지)
+        if (subtitle) {
+          ctx.font = `900 ${subFontSize}px sans-serif`;
+          ctx.fillText(subtitle, centerX, y);
+        }
+      }
+
       const pngUrl = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
       downloadLink.href = pngUrl;
@@ -386,8 +437,9 @@ const AdminDetail = () => {
                   size={256} // 기존 50에서 256 이상으로 크게 키우세요.
                   //level="H"  // 'H' 레벨은 QR 코드 내의 데이터를 더 높은 밀도로 압축하여 복원력을 높입니다.
                   includeMargin={true} // 여백을 추가하여 인식률을 높입니다.
+                  bgColor="transparent" // 배경을 투명하게 하여 PNG 다운로드 시 투명 배경으로 저장됩니다.
                 />
-                <button onClick={() => downloadQR("admin-qr", `${boothName}_관리자QR`)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-700 break-keep">다운로드</button>
+                <button onClick={() => downloadQR("admin-qr", `${boothName}_관리자QR`, boothName, "관리자 페이지")} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-700 break-keep">다운로드</button>
               </div>
             </div>
 
@@ -404,8 +456,9 @@ const AdminDetail = () => {
                   size={256} // 기존 50에서 256 이상으로 크게 키우세요.
                   //level="H"  // 'H' 레벨은 QR 코드 내의 데이터를 더 높은 밀도로 압축하여 복원력을 높입니다.
                   includeMargin={true} // 여백을 추가하여 인식률을 높입니다.
+                  bgColor="transparent" // 배경을 투명하게 하여 PNG 다운로드 시 투명 배경으로 저장됩니다.
                 />
-                <button onClick={() => downloadQR("user-qr", `${boothName}_신청QR`)} className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 break-keep">다운로드</button>
+                <button onClick={() => downloadQR("user-qr", `${boothName}_신청QR`, boothName, "신청서 페이지")} className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 break-keep">다운로드</button>
               </div>
             </div>
           </div>
