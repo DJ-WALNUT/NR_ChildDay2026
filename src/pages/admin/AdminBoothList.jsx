@@ -216,6 +216,35 @@ const AdminBoothList = () => {
     fetchData();
   };
 
+  // 현재 목록에 보이는 부스들의 링크를 엑셀로 다운로드
+  const downloadBoothLinks = () => {
+    if (filteredBooths.length === 0) {
+      alert("내려받을 부스가 없습니다.");
+      return;
+    }
+
+    const SITE_URL = "https://nrbooth.team-cluster.kr";
+    const wsData = [
+      ["행사이름", "부스이름", "관리자링크", "신청서링크"],
+      ...filteredBooths.map(b => [
+        b.event_name,
+        b.name,
+        `${SITE_URL}/manage/booths/${b.id}`,
+        `${SITE_URL}/reserve/${b.id}`
+      ])
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 20 }, { wch: 24 }, { wch: 48 }, { wch: 48 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "부스링크목록");
+
+    const eventLabel = filterEventId === "all"
+      ? "전체"
+      : (events.find(ev => ev.id === parseInt(filterEventId))?.name || "행사");
+    XLSX.writeFile(wb, `부스링크목록_${eventLabel}.xlsx`);
+  };
+
   // [수정] 행사 필터와 검색어 필터를 동시에 적용
   const filteredBooths = booths.filter(b => {
     const matchEvent = filterEventId === "all" || b.event_id === parseInt(filterEventId);
@@ -342,6 +371,12 @@ const AdminBoothList = () => {
             <div>
               <h3 className="text-xl font-black text-slate-800">부스 목록 ({filteredBooths.length}개)</h3>
               <p className="text-slate-500 font-bold text-sm">개설된 최신순으로 정렬됩니다.</p>
+              <button
+                onClick={downloadBoothLinks}
+                className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-md flex items-center gap-2"
+              >
+                <span>📗</span> 현재 목록의 링크 목록 엑셀 다운로드
+              </button>
             </div>
             
             {/* [추가] 검색창 및 행사 필터 그룹 */}
