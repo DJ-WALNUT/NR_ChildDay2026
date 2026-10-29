@@ -146,7 +146,7 @@ export function SettingsForm({
             type="checkbox"
             checked={form.use_waitlist}
             onChange={(e) => set("use_waitlist", e.target.checked)}
-            className="size-5"
+            className="size-5 accent-ink"
           />
           대기 접수 받기
         </label>

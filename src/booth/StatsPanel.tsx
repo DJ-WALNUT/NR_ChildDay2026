@@ -109,7 +109,7 @@ export function StatsPanel({
         </div>
         {booths.map((b) => (
           <label key={b.id} className="flex min-h-11 items-center gap-3 text-15 font-bold break-words">
-            <input type="checkbox" className="size-5 shrink-0" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
+            <input type="checkbox" className="size-5 shrink-0 accent-ink" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
             {b.name}
           </label>
         ))}

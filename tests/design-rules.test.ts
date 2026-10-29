@@ -66,3 +66,16 @@ describe("포커스 색 범위", () => {
     expect(css).toMatch(/\.on-paper\s+:focus-visible\s*\{[^}]*outline-color:\s*var\(--color-ink\)/);
   });
 });
+
+describe("체크박스 색", () => {
+  it("모든 체크박스는 accent-ink 로 브라우저 기본 파랑을 쓰지 않는다", () => {
+    const bad: string[] = [];
+    for (const f of walk(SRC)) {
+      const text = readFileSync(f, "utf8");
+      for (const m of text.matchAll(/<input[^>]*type="checkbox"[\s\S]*?\/>/g)) {
+        if (!m[0].includes("accent-ink")) bad.push(relative(SRC, f));
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});
