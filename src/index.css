@@ -1,26 +1,5 @@
 @import "tailwindcss";
-
-@font-face {
-  font-family: "Pretendard";
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-  src: url("/fonts/Pretendard-Medium.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Pretendard";
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-  src: url("/fonts/Pretendard-Bold.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Pretendard";
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-  src: url("/fonts/Pretendard-ExtraBold.woff2") format("woff2");
-}
+/* 글꼴 @font-face 는 public/fonts/pretendard.css (index.html 에서 link) */
 
 @theme {
   --font-sans: "Pretendard", system-ui, sans-serif;
@@ -38,10 +17,13 @@
   --color-stamp-green: #1f6f4a;
   --color-stamp-amber: #a15c00;
 
+  --radius-*: initial;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+  --radius-full: 9999px;
 
+  --text-*: initial;
   --text-12: 12px;
   --text-12--line-height: 1.5;
   --text-13: 13px;

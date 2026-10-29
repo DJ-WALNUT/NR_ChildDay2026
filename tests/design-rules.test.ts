@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 
 const SRC = join(__dirname, "..", "src");
 
@@ -13,13 +13,19 @@ function walk(dir: string): string[] {
 
 const RULES: [string, RegExp][] = [
   ["raw color (hex/rgb/hsl)", /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/],
-  ["large radius", /rounded-(xl|2xl|3xl|\[)/],
+  ["large radius", /rounded(-[trblxyse]{1,2})?-(xl|2xl|3xl|4xl|\[)/],
   ["emoji", /\p{Extended_Pictographic}/u],
   ["blue family", /\b(blue|indigo|sky)-/],
-  ["shadow/gradient", /shadow-|bg-gradient|\bfrom-|\bvia-/],
+  ["shadow/gradient", /(^|[\s"'`])shadow(-|\b)|bg-gradient|bg-linear-|\bfrom-|\bvia-/],
 ];
 
 describe("design rules", () => {
+  it("스캔 대상 파일을 찾는다", () => {
+    const files = walk(SRC).map((f) => relative(SRC, f).split(sep).join("/"));
+    expect(files.length).toBeGreaterThan(0);
+    expect(files).toContain("routes.tsx");
+  });
+
   it("src 에 규칙 위반이 없다", () => {
     const violations: string[] = [];
     for (const file of walk(SRC)) {
@@ -37,9 +43,17 @@ describe("design rules", () => {
   it("규칙 정규식이 위반 예시를 잡는다", () => {
     expect(RULES[0][1].test('color: "#fff"')).toBe(true);
     expect(RULES[1][1].test("rounded-2xl")).toBe(true);
+    expect(RULES[1][1].test("rounded-t-xl")).toBe(true);
+    expect(RULES[1][1].test("rounded-tl-3xl")).toBe(true);
+    expect(RULES[1][1].test("rounded-4xl")).toBe(true);
+    expect(RULES[1][1].test("rounded-[10px]")).toBe(true);
+    expect(RULES[1][1].test("rounded-md")).toBe(false);
     expect(RULES[2][1].test("확인 ✅")).toBe(true);
     expect(RULES[3][1].test("bg-blue-500")).toBe(true);
     expect(RULES[4][1].test("shadow-md")).toBe(true);
+    expect(RULES[4][1].test('className="p-2 shadow"')).toBe(true);
+    expect(RULES[4][1].test("bg-linear-to-r")).toBe(true);
+    expect(RULES[4][1].test("bg-gradient-to-r")).toBe(true);
     expect(RULES[0][1].test("bg-ink text-paper")).toBe(false);
   });
 });

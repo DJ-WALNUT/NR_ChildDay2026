@@ -23,6 +23,11 @@ describe("routes", () => {
     expect(screen.getByTestId("placeholder")).toHaveTextContent("booth-link");
   });
 
+  it.each(["/manage", "/b", "/p", "/reserve", "/check"])("%s 는 기관(slug) 화면이 아니다", (path) => {
+    renderAt(path);
+    expect(screen.getByTestId("placeholder")).not.toHaveTextContent(/^org$/);
+  });
+
   it.each([
     ["/p/abc", "program-link"],
     ["/p/abc/booths/3", "program-booth"],
