@@ -34,6 +34,7 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
     document.body.style.overflow = "hidden";
 
     function onKeyDown(e: globalThis.KeyboardEvent) {
+      if (e.isComposing || e.keyCode === 229) return; // 한글 등 조합 중에는 무시
       if (e.key === "Escape") {
         e.preventDefault();
         cancelRef.current();
@@ -95,7 +96,7 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && ready) {
+                if (e.key === "Enter" && ready && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                   e.preventDefault();
                   onConfirm();
                 }

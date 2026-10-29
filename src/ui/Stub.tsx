@@ -20,7 +20,7 @@ export function Stub({
   closed?: boolean;
   right?: ReactNode;
 }) {
-  const body = closed ? "bg-ink-2 text-faint" : "bg-paper text-ink";
+  const body = closed ? "bg-ink-2 text-rule" : "bg-paper text-ink";
   const content = (
     <>
       <span className="flex w-16 shrink-0 items-center justify-center border-r-2 border-dashed border-rule text-22 font-extrabold">

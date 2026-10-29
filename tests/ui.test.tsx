@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import {
@@ -145,6 +145,25 @@ describe("ConfirmDialog 포커스 이탈", () => {
     await user.keyboard("{Enter}");
     expect(onConfirm).not.toHaveBeenCalled();
     await user.keyboard("나{Enter}");
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ConfirmDialog 한글 조합", () => {
+  it("조합 중 Enter 는 확인하지 않고 Esc 는 닫지 않는다", () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog open title="t" body="b" confirmLabel="삭제" requireText="가" onConfirm={onConfirm} onCancel={onCancel} />,
+    );
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "가" } });
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    fireEvent.keyDown(input, { key: "Enter", keyCode: 229 });
+    fireEvent.keyDown(input, { key: "Escape", isComposing: true });
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    fireEvent(input, createEvent.keyDown(input, { key: "Enter" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });
