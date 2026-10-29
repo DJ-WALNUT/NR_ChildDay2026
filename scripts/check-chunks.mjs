@@ -1,8 +1,9 @@
-// 빌드 뒤 검사: 방문객이 처음 받는 묶음(entry)이 커지거나 직원용 라이브러리가 새어 들어오면 빌드를 실패시킨다.
+// 빌드 뒤 검사: 방문객이 처음 받는 묶음(entry + 미리 받는 묶음)이 커지거나 직원용 라이브러리가 새어 들어오면 빌드를 실패시킨다.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const LIMIT = 400_000; // 바이트
+const LIMIT = 400_000; // 바이트, entry 와 modulepreload 묶음의 합계
+const MARKERS = ["QRCodeCanvas", "QRCodeSVG", "ExcelJS", "exceljs"];
 const dist = join(import.meta.dirname, "..", "dist");
 const html = readFileSync(join(dist, "index.html"), "utf8");
 const m = /<script[^>]+src="\/?(assets\/[^"]+\.js)"/.exec(html);
@@ -10,17 +11,28 @@ if (!m) {
   console.error("check-chunks: dist/index.html 에서 entry 스크립트를 찾지 못했어요.");
   process.exit(1);
 }
-const entry = join(dist, m[1]);
-const size = statSync(entry).size;
-const code = readFileSync(entry, "utf8");
+const preloads = [...html.matchAll(/<link\b[^>]*>/g)]
+  .map((t) => t[0])
+  .filter((t) => /rel="modulepreload"/.test(t))
+  .map((t) => /href="\/?(assets\/[^"]+\.js)"/.exec(t)?.[1])
+  .filter(Boolean);
+const files = [...new Set([m[1], ...preloads])];
+
 const problems = [];
-if (size >= LIMIT) problems.push(`entry ${m[1]} 가 ${size} 바이트로 한도 ${LIMIT} 바이트 이상이에요.`);
-for (const marker of ["QRCodeCanvas", "QRCodeSVG", "ExcelJS", "exceljs"]) {
-  if (code.includes(marker)) problems.push(`entry 에 ${marker} 가 들어 있어요(직원용 화면은 따로 불러와야 해요).`);
+let total = 0;
+for (const f of files) {
+  const size = statSync(join(dist, f)).size;
+  total += size;
+  const code = readFileSync(join(dist, f), "utf8");
+  const label = f === m[1] ? "entry" : "미리 받는 묶음";
+  for (const marker of MARKERS) {
+    if (code.includes(marker)) problems.push(`${label} ${f} 에 ${marker} 가 들어 있어요(직원용 화면은 따로 불러와야 해요).`);
+  }
 }
+if (total >= LIMIT) problems.push(`entry 와 미리 받는 묶음 ${files.length}개의 합계가 ${total} 바이트로 한도 ${LIMIT} 바이트 이상이에요.`);
 if (problems.length) {
   console.error("check-chunks 실패:\n- " + problems.join("\n- "));
   process.exit(1);
 }
-const others = readdirSync(join(dist, "assets")).filter((f) => f.endsWith(".js")).length - 1;
-console.log(`check-chunks: entry ${m[1]} ${size} 바이트 (< ${LIMIT}), 그 밖의 묶음 ${others}개 - 통과`);
+const others = readdirSync(join(dist, "assets")).filter((f) => f.endsWith(".js")).length - files.length;
+console.log(`check-chunks: entry ${m[1]} + 미리 받는 묶음 ${files.length - 1}개 합계 ${total} 바이트 (< ${LIMIT}), 그 밖의 묶음 ${others}개 - 통과`);

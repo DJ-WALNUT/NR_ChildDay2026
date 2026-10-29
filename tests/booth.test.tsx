@@ -357,6 +357,26 @@ describe("BoothConsole", () => {
     expect(await screen.findByText("바꾼 내용이 없어요.")).toBeInTheDocument();
   });
 
+  it("저장 실패 뒤 원래 값으로 되돌려 저장하면 이전 오류 안내가 사라진다", async () => {
+    const user = userEvent.setup();
+    const patch = vi.fn(async () => {
+      throw new ApiError(500, "server_error");
+    });
+    wrap(<BoothConsole source={fakeSource({ patch })} access="manage" />);
+    await user.click(await screen.findByRole("button", { name: "설정" }));
+    const end = screen.getByLabelText("종료 시각");
+    await user.clear(end);
+    await user.type(end, "13");
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    await user.clear(end);
+    await user.type(end, "14");
+    await user.click(screen.getByRole("button", { name: "저장" }));
+    expect(await screen.findByText("바꾼 내용이 없어요.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(patch).toHaveBeenCalledTimes(1);
+  });
+
   it("건드리지 않은 설정 칸은 서버의 새 값으로 갱신되고 고친 칸은 유지된다", async () => {
     const user = userEvent.setup();
     const get = vi

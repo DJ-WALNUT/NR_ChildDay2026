@@ -123,6 +123,7 @@ export function SettingsForm({
           e.preventDefault();
           if (dirty.length === 0) {
             setErrors({});
+            save.reset(); // 이전 저장 실패 안내가 남지 않게
             setNote("바꾼 내용이 없어요.");
             return;
           }
