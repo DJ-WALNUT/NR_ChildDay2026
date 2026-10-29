@@ -1,0 +1,139 @@
+import { useEffect, useRef, useState } from "react";
+import { Download } from "lucide-react";
+import { messageFor } from "../api/messages";
+import type { Booth, ExportData, Stats, StatsMode } from "../api/types";
+import { downloadBlob } from "../lib/download";
+import { buildRosterWorkbook } from "../lib/excel";
+import { Button, Notice, Spinner, Tabs } from "../ui";
+import { StatsTable } from "./StatsTable";
+
+const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const MODES = [
+  { id: "simple", label: "단순 합계" },
+  { id: "strict", label: "엄격 합계" },
+];
+
+type Shown = { key: string; stats: Stats };
+
+/** 부스를 골라 합계를 보고 통합 엑셀을 받는 패널. 운영 단체 화면과 행사 실적 탭이 함께 써요. */
+export function StatsPanel({
+  booths,
+  loadStats,
+  loadExport,
+  fileName,
+}: {
+  booths: Booth[];
+  loadStats: (ids: number[], mode: StatsMode) => Promise<Stats>;
+  loadExport: (ids: number[]) => Promise<ExportData>;
+  fileName: () => string;
+}) {
+  const [selected, setSelected] = useState<Set<number>>(() => new Set(booths.map((b) => b.id)));
+  const [mode, setMode] = useState<StatsMode>("simple");
+  const [shown, setShown] = useState<Shown | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [retry, setRetry] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // 부스 목록 순서를 지킨 선택 id
+  const ids = booths.filter((b) => selected.has(b.id)).map((b) => b.id);
+  const key = `${mode}:${ids.join(",")}`;
+  const load = useRef(loadStats);
+  load.current = loadStats;
+
+  useEffect(() => {
+    if (ids.length === 0) return;
+    let stale = false;
+    setError(null);
+    load.current(ids, mode).then(
+      (s) => !stale && setShown({ key, stats: s }),
+      (e) => !stale && setError(e),
+    );
+    return () => {
+      stale = true;
+    };
+    // ids 는 key 에서 나온다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, retry]);
+
+  const toggle = (id: number) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
+  const current = shown && shown.key === key ? shown.stats : null;
+
+  async function exportXlsx() {
+    if (!current) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      const data = await loadExport(ids);
+      const buf = await buildRosterWorkbook(data, current, { mode });
+      downloadBlob(buf, fileName(), XLSX);
+    } catch (err) {
+      setExportError(messageFor(err, "엑셀 파일을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요."));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <section aria-label="실적" className="space-y-4">
+      <fieldset className="space-y-1">
+        <legend className="text-15 font-extrabold">합계에 포함할 부스</legend>
+        <div className="flex flex-wrap gap-2 py-1">
+          <Button variant="secondary" onClick={() => setSelected(new Set(booths.map((b) => b.id)))}>
+            전체 선택
+          </Button>
+          <Button variant="secondary" onClick={() => setSelected(new Set())}>
+            전체 해제
+          </Button>
+        </div>
+        {booths.map((b) => (
+          <label key={b.id} className="flex min-h-11 items-center gap-3 text-15 font-bold break-words">
+            <input type="checkbox" className="size-5 shrink-0" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
+            {b.name}
+          </label>
+        ))}
+      </fieldset>
+
+      <Tabs items={MODES} value={mode} onChange={(m) => setMode(m as StatsMode)} />
+
+      {ids.length === 0 ? (
+        <p className="text-15 text-muted">부스를 하나 이상 골라 주세요.</p>
+      ) : error ? (
+        <Notice tone="error" action={{ label: "다시 시도", onClick: () => setRetry((n) => n + 1) }}>
+          {messageFor(error)}
+        </Notice>
+      ) : !current ? (
+        <Spinner />
+      ) : (
+        <>
+          <dl aria-label="합계" className="grid grid-cols-3 gap-2 text-15">
+            {[
+              ["남", current.male],
+              ["여", current.female],
+              ["합계", current.total],
+            ].map(([label, v]) => (
+              <div key={label} className="rounded-md border border-rule-2 p-3">
+                <dt className="text-13 text-muted">{label}</dt>
+                <dd className="text-22 font-extrabold tabular-nums">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <StatsTable stats={current} />
+        </>
+      )}
+
+      {exportError && <Notice tone="error">{exportError}</Notice>}
+      <Button variant="secondary" loading={exporting} disabled={ids.length === 0 || !current} onClick={() => void exportXlsx()}>
+        <Download aria-hidden className="size-4" />
+        통합 엑셀
+      </Button>
+    </section>
+  );
+}

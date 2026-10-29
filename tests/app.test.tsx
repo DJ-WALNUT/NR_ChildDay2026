@@ -4,7 +4,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "../src/api/client";
 import { routes } from "../src/routes";
 
-vi.mock("../src/api/link", async (orig) => ({ ...(await orig<typeof import("../src/api/link")>()), getBoothLink: vi.fn() }));
+vi.mock("../src/api/link", async (orig) => ({
+  ...(await orig<typeof import("../src/api/link")>()),
+  getBoothLink: vi.fn(),
+  getPartner: vi.fn(),
+  getPartnerBooth: vi.fn(),
+  listReservationsPartnerBooth: vi.fn(),
+  partnerStats: vi.fn(),
+}));
 import * as link from "../src/api/link";
 
 function renderAt(path: string) {
@@ -30,6 +37,23 @@ describe("routes", () => {
     expect(link.getBoothLink).toHaveBeenCalledWith("abc");
   });
 
+  it("/p/abc 는 /:slug 로 잡히지 않고 운영 단체 링크로 간다", async () => {
+    vi.mocked(link.getPartner).mockRejectedValue(new ApiError(404, "not_found"));
+    renderAt("/p/abc");
+    expect(await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(link.getPartner).toHaveBeenCalledWith("abc");
+  });
+
+  it("/p/abc/booths/3 은 운영 단체의 부스 화면으로 간다", async () => {
+    vi.mocked(link.getPartnerBooth).mockRejectedValue(new ApiError(404, "not_found"));
+    vi.mocked(link.listReservationsPartnerBooth).mockRejectedValue(new ApiError(404, "not_found"));
+    vi.mocked(link.partnerStats).mockRejectedValue(new ApiError(404, "not_found"));
+    vi.mocked(link.getPartner).mockRejectedValue(new ApiError(404, "not_found"));
+    renderAt("/p/abc/booths/3");
+    expect(await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(link.getPartnerBooth).toHaveBeenCalledWith("abc", "3");
+  });
+
   it.each(["/b", "/p", "/reserve", "/check", "/a/b/c/d"])("%s 는 찾을 수 없어요 화면", (path) => {
     renderAt(path);
     expect(screen.getByText("찾을 수 없어요")).toBeInTheDocument();
@@ -41,8 +65,6 @@ describe("routes", () => {
   });
 
   it.each([
-    ["/p/abc", "program-link"],
-    ["/p/abc/booths/3", "program-booth"],
     ["/manage/booths", "manage"],
   ])("%s", (path, name) => {
     renderAt(path);

@@ -36,8 +36,16 @@ export const routes: RouteObject[] = [
     // 현장 직원 화면은 방문객 첫 묶음(entry chunk)에 들어가지 않도록 따로 불러온다.
     lazy: async () => ({ Component: (await import("./links/BoothLinkPage")).default }),
   },
-  { path: "/p/:token", element: <Placeholder name="program-link" /> },
-  { path: "/p/:token/booths/:boothId", element: <Placeholder name="program-booth" /> },
+  {
+    path: "/p/:token",
+    HydrateFallback: StaffFallback,
+    lazy: async () => ({ Component: (await import("./links/PartnerPage")).default }),
+  },
+  {
+    path: "/p/:token/booths/:boothId",
+    HydrateFallback: StaffFallback,
+    lazy: async () => ({ Component: (await import("./links/PartnerBoothPage")).default }),
+  },
   { path: "/reserve/:boothId", element: <LegacyRedirect to="reserve" /> },
   { path: "/check/:boothId", element: <LegacyRedirect to="check" /> },
   { path: "/b", element: <NotFoundPage /> },
