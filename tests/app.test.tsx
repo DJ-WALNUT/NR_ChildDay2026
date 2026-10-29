@@ -18,9 +18,10 @@ describe("routes", () => {
     expect(screen.getByText(/QR 코드나 기관에서 받은 주소/)).toBeInTheDocument();
   });
 
-  it("/b/abc 는 /:slug 로 잡히지 않고 부스 링크로 간다", () => {
+  it("/b/abc 는 /:slug 로 잡히지 않고 부스 링크로 간다", async () => {
     renderAt("/b/abc");
-    expect(screen.getByTestId("placeholder")).toHaveTextContent("booth-link");
+    // 부스 링크 화면은 따로 불러오고, 불러온 뒤 조회를 시작한다(테스트에는 서버가 없어 연결 오류 안내가 보인다).
+    expect(await screen.findByRole("alert", {}, { timeout: 3000 })).toHaveTextContent("연결이 불안정해요");
   });
 
   it.each(["/b", "/p", "/reserve", "/check", "/a/b/c/d"])("%s 는 찾을 수 없어요 화면", (path) => {

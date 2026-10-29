@@ -12,6 +12,8 @@ if (!process.env.VITEST) {
 
 const config: UserConfig & { test: Record<string, unknown> } = {
   plugins,
+  // exceljs(약 930kB)는 엑셀을 내려받을 때만 불러오는 별도 묶음이라 방문객 화면에는 영향이 없다.
+  build: { chunkSizeWarningLimit: 1000 },
   server: {
     proxy: {
       "/api": process.env.VITE_API_TARGET ?? "http://localhost:5000",

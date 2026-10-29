@@ -1,5 +1,5 @@
 import type { RouteObject } from "react-router-dom";
-import { NotFound, PageFrame } from "./ui";
+import { NotFound, PageFrame, Spinner } from "./ui";
 import CheckPage from "./visitor/CheckPage";
 import LegacyRedirect from "./visitor/LegacyRedirect";
 import OrgPage from "./visitor/OrgPage";
@@ -14,6 +14,14 @@ function NotFoundPage() {
   );
 }
 
+function StaffFallback() {
+  return (
+    <PageFrame surface="paper" width="wide">
+      <Spinner />
+    </PageFrame>
+  );
+}
+
 function Placeholder({ name }: { name: string }) {
   return <div data-testid="placeholder">{name}</div>;
 }
@@ -22,7 +30,12 @@ function Placeholder({ name }: { name: string }) {
 export const routes: RouteObject[] = [
   { path: "/", element: <RootPage /> },
   { path: "/manage/*", element: <Placeholder name="manage" /> },
-  { path: "/b/:token", element: <Placeholder name="booth-link" /> },
+  {
+    path: "/b/:token",
+    HydrateFallback: StaffFallback,
+    // 현장 직원 화면은 방문객 첫 묶음(entry chunk)에 들어가지 않도록 따로 불러온다.
+    lazy: async () => ({ Component: (await import("./links/BoothLinkPage")).default }),
+  },
   { path: "/p/:token", element: <Placeholder name="program-link" /> },
   { path: "/p/:token/booths/:boothId", element: <Placeholder name="program-booth" /> },
   { path: "/reserve/:boothId", element: <LegacyRedirect to="reserve" /> },
