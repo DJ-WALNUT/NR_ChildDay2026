@@ -211,6 +211,37 @@ describe("ReservePage", () => {
     expect(await screen.findByText("선착순 입장")).toBeInTheDocument();
   });
 
+  it("정원이 찬 대기 접수 선착순 부스는 대기자로 접수된다고 먼저 알린다", async () => {
+    m.getBoothPage.mockResolvedValue(
+      boothPage({
+        booth: { id: 12, name: "룰렛", mode: "fcfs", use_waitlist: true, is_active: true },
+        availability: { remaining: 0, full: true, is_closed: false },
+      }),
+    );
+    renderAt("/nareum/reserve/12");
+    expect(await screen.findByText(/정원이 다 찼어요/)).toBeInTheDocument();
+    expect(screen.getByText(/대기자로 접수돼요/)).toBeInTheDocument();
+  });
+
+  it("정원이 남은 선착순 부스에는 대기 안내가 없다", async () => {
+    m.getBoothPage.mockResolvedValue(
+      boothPage({
+        booth: { id: 12, name: "룰렛", mode: "fcfs", use_waitlist: true, is_active: true },
+        availability: { remaining: 2, full: false, is_closed: false },
+      }),
+    );
+    renderAt("/nareum/reserve/12");
+    await screen.findByRole("button", { name: "신청하기" });
+    expect(screen.queryByText(/대기자로 접수돼요/)).not.toBeInTheDocument();
+  });
+
+  it("입장권 본문(종이)은 포커스 색을 ink 로 되돌리는 on-paper 범위다", async () => {
+    m.getBoothPage.mockResolvedValue(boothPage());
+    renderAt("/nareum/reserve/12");
+    const input = await screen.findByLabelText("참가자 이름");
+    expect(input.closest(".on-paper")).not.toBeNull();
+  });
+
   it("비활성 부스는 마감 입장권을 보인다", async () => {
     m.getBoothPage.mockResolvedValue(
       boothPage({ booth: { id: 12, name: "비누 만들기", mode: "time", use_waitlist: false, is_active: false } }),

@@ -167,7 +167,12 @@ export default function ReservePage() {
               <Choice label="시간 선택" value={slot} options={slotOptions} onChange={setSlot} error={errors.slot} />
             </div>
           ) : (
-            <p className="text-15 font-bold">현장 선착순으로 입장해요.</p>
+            <>
+              <p className="text-15 font-bold">현장 선착순으로 입장해요.</p>
+              {booth.use_waitlist && !isTimeAvailability(availability) && availability.full && (
+                <Notice tone="info">정원이 다 찼어요. 지금 신청하면 대기자로 접수돼요.</Notice>
+              )}
+            </>
           )}
           <div data-field="name">
           <TextField
