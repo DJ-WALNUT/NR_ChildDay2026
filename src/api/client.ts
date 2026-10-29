@@ -24,7 +24,7 @@ export function getCsrf(): string | null {
 
 /** API 서버 주소(빌드 시 VITE_API_BASE, 기본 같은 출처) + 경로. 로고 같은 절대 경로에도 쓴다. */
 export function apiUrl(path: string): string {
-  return `${import.meta.env.VITE_API_BASE ?? ""}${path}`;
+  return `${(import.meta.env.VITE_API_BASE ?? "").replace(/\/+$/, "")}${path}`;
 }
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

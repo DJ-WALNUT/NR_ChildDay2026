@@ -100,4 +100,27 @@ describe("api client", () => {
     await getPartnerBooth("tok", 5);
     expect(fetchMock.mock.calls[0][0]).toBe("https://api.test/api/link/partner/tok/booths/5");
   });
+
+  it("strips trailing slashes from VITE_API_BASE", () => {
+    vi.stubEnv("VITE_API_BASE", "https://api.test/");
+    expect(apiUrl("/api/public/orgs/a")).toBe("https://api.test/api/public/orgs/a");
+  });
+
+  it("sends FormData without a JSON Content-Type", async () => {
+    fetchMock.mockResolvedValue(json(200, {}));
+    const fd = new FormData();
+    fd.append("file", new Blob(["x"]), "a.png");
+    await api("POST", "/api/admin/assets", fd);
+    const init = fetchMock.mock.calls[0][1];
+    expect(init.headers["Content-Type"]).toBeUndefined();
+    expect((init as unknown as { body: unknown }).body).toBe(fd);
+  });
+
+  it("keeps auth/me quiet with a query string but not auth/logout", async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(json(401, { error: "unauthorized" })));
+    await expect(api("GET", "/api/admin/auth/me?x=1")).rejects.toBeInstanceOf(ApiError);
+    expect(unauthorized).not.toHaveBeenCalled();
+    await expect(api("POST", "/api/admin/auth/logout", {})).rejects.toBeInstanceOf(ApiError);
+    expect(unauthorized).toHaveBeenCalledTimes(1);
+  });
 });
