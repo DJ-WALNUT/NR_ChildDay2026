@@ -169,3 +169,75 @@ describe("PartnerBoothPage", () => {
     expect(await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, T)).toBeInTheDocument();
   });
 });
+
+describe("StatsPanel", () => {
+  const booths = [mk(12, "비누 만들기"), mk(13, "팽이 돌리기")];
+  const data = payload(booths);
+
+  it("합계 방식마다 설명 문구가 바뀐다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(link.getPartner).mockResolvedValue(data);
+    renderAt("/p/tok");
+    expect(await screen.findByText("신청 건수를 그대로 더해요.", {}, T)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /엄격/ }));
+    expect(screen.getByText("이름·성별·연령이 같으면 1명으로 세요.")).toBeInTheDocument();
+  });
+
+  it("부스 번호는 순서대로 두 자리", async () => {
+    vi.mocked(link.getPartner).mockResolvedValue(data);
+    renderAt("/p/tok");
+    const a = await screen.findByRole("link", { name: /비누 만들기/ }, T);
+    expect(within(a).getByText("01")).toBeInTheDocument();
+    expect(within(screen.getByRole("link", { name: /팽이 돌리기/ })).getByText("02")).toBeInTheDocument();
+  });
+
+  it("지난 선택의 늦은 응답은 무시한다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(link.getPartner).mockResolvedValue(data);
+    let resolveOld!: (s: Stats) => void;
+    vi.mocked(link.partnerStats)
+      .mockImplementationOnce(() => new Promise<Stats>((r) => (resolveOld = r)))
+      .mockResolvedValue({ rows: [], male: 0, female: 0, total: 77 });
+    renderAt("/p/tok");
+    const group = await screen.findByRole("group", { name: "합계에 포함할 부스" }, T);
+    await waitFor(() => expect(link.partnerStats).toHaveBeenCalledTimes(1));
+    await user.click(within(group).getByRole("checkbox", { name: "팽이 돌리기" }));
+    expect(await screen.findByText("77")).toBeInTheDocument();
+    resolveOld({ rows: [], male: 0, female: 0, total: 999 });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("999")).not.toBeInTheDocument();
+    expect(screen.getByText("77")).toBeInTheDocument();
+  });
+
+  it("실적 조회가 실패하면 안내와 다시 시도를 보여준다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(link.getPartner).mockResolvedValue(data);
+    vi.mocked(link.partnerStats).mockRejectedValueOnce(new ApiError(500, "server_error"));
+    renderAt("/p/tok");
+    await user.click(await screen.findByRole("button", { name: "다시 시도" }, T));
+    expect(await screen.findByText("3", { selector: "dd" })).toBeInTheDocument();
+    expect(link.partnerStats).toHaveBeenCalledTimes(2);
+  });
+
+  it("엑셀 실패 안내를 보여준다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(link.getPartner).mockResolvedValue(data);
+    vi.mocked(link.partnerExport).mockRejectedValueOnce(new Error("boom"));
+    renderAt("/p/tok");
+    const btn = await screen.findByRole("button", { name: /통합 엑셀/ }, T);
+    await waitFor(() => expect(btn).toBeEnabled());
+    await user.click(btn);
+    expect(await screen.findByText("엑셀 파일을 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.")).toBeInTheDocument();
+  });
+
+  it("현재 선택의 실적이 올 때까지 엑셀은 막혀 있다", async () => {
+    vi.mocked(link.getPartner).mockResolvedValue(data);
+    let resolve!: (s: Stats) => void;
+    vi.mocked(link.partnerStats).mockImplementationOnce(() => new Promise<Stats>((r) => (resolve = r)));
+    renderAt("/p/tok");
+    const btn = await screen.findByRole("button", { name: /통합 엑셀/ }, T);
+    expect(btn).toBeDisabled();
+    resolve(stats);
+    await waitFor(() => expect(btn).toBeEnabled());
+  });
+});

@@ -9,6 +9,13 @@ const STATUS_LABEL: Record<ReservationStatus, string> = {
 
 const HEADERS = ["시간", "이름", "성별", "연령", "식별번호", "상태", "신청 시각"];
 
+/** 합계 방식 이름과 설명. 화면(StatsPanel)과 엑셀 합계 시트가 같은 문구를 써요. */
+export const MODE_LABEL = { simple: "단순 합계", strict: "엄격 합계" } as const;
+export const MODE_NOTE = {
+  simple: "신청 건수를 그대로 더해요.",
+  strict: "이름·성별·연령이 같으면 1명으로 세요.",
+} as const;
+
 /** 엑셀 시트 이름: 금지 문자 제거, 31자 이하, 비면 "시트", 중복이면 " (2)"… */
 export function sheetName(raw: string, taken: Set<string>): string {
   const clean = (v: string) => v.trim().replace(/^'+|'+$/g, "").trim();
@@ -59,7 +66,7 @@ export async function buildRosterWorkbook(
     ws.getColumn(5).numFmt = "@";
   }
   const ws = wb.addWorksheet("합계");
-  ws.addRow([opts.mode === "strict" ? "엄격 합계(이름·성별·연령 같으면 1명)" : "단순 합계"]).font = { bold: true };
+  ws.addRow([`${MODE_LABEL[opts.mode]} - ${MODE_NOTE[opts.mode]}`]).font = { bold: true };
   ws.addRow(["연령대", "남", "여", "합계"]).font = { bold: true };
   for (const r of stats.rows) ws.addRow([r.age_group, r.male, r.female, r.total]);
   ws.addRow(["전체 합계", stats.male, stats.female, stats.total]).font = { bold: true };

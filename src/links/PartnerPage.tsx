@@ -36,10 +36,10 @@ export default function PartnerPage() {
         ) : (
           <>
             <ul aria-label="부스 목록" className="space-y-2">
-              {booths.map((b) => (
+              {booths.map((b, i) => (
                 <li key={b.id}>
                   <Stub
-                    number={String(b.id)}
+                    number={String(i + 1).padStart(2, "0")}
                     to={`/p/${encodeURIComponent(token)}/booths/${b.id}`}
                     closed={!b.is_active}
                     right={

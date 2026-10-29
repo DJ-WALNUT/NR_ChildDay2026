@@ -46,9 +46,9 @@ describe("buildRosterWorkbook", () => {
   it("합계 시트", async () => {
     const wb = await load("strict");
     const ws = wb.getWorksheet("합계")!;
-    expect(ws.getCell("A1").value).toBe("엄격 합계(이름·성별·연령 같으면 1명)");
+    expect(ws.getCell("A1").value).toBe("엄격 합계 - 이름·성별·연령이 같으면 1명으로 세요.");
     expect(ws.getRow(ws.rowCount).getCell(4).value).toBe(stats.total);
-    expect((await load("simple")).getWorksheet("합계")!.getCell("A1").value).toBe("단순 합계");
+    expect((await load("simple")).getWorksheet("합계")!.getCell("A1").value).toBe("단순 합계 - 신청 건수를 그대로 더해요.");
   });
 });
 

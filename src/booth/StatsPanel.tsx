@@ -3,19 +3,24 @@ import { Download } from "lucide-react";
 import { messageFor } from "../api/messages";
 import type { Booth, ExportData, Stats, StatsMode } from "../api/types";
 import { downloadBlob } from "../lib/download";
-import { buildRosterWorkbook } from "../lib/excel";
+import { buildRosterWorkbook, MODE_LABEL, MODE_NOTE } from "../lib/excel";
 import { Button, Notice, Spinner, Tabs } from "../ui";
 import { StatsTable } from "./StatsTable";
 
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const MODES = [
-  { id: "simple", label: "단순 합계" },
-  { id: "strict", label: "엄격 합계" },
+  { id: "simple", label: MODE_LABEL.simple },
+  { id: "strict", label: MODE_LABEL.strict },
 ];
 
 type Shown = { key: string; stats: Stats };
+type Failed = { key: string; error: unknown };
 
-/** 부스를 골라 합계를 보고 통합 엑셀을 받는 패널. 운영 단체 화면과 행사 실적 탭이 함께 써요. */
+/**
+ * 부스를 골라 합계를 보고 통합 엑셀을 받는 패널. 운영 단체 화면과 행사 실적 탭이 함께 써요.
+ * 선택 상태는 처음 받은 booths 로 정해져요. 부스 목록이나 loadStats/loadExport 가 바뀌는 곳
+ * (다른 토큰·행사)에서는 부모가 `key` 를 바꿔 새로 시작하게 해 주세요.
+ */
 export function StatsPanel({
   booths,
   loadStats,
@@ -30,7 +35,7 @@ export function StatsPanel({
   const [selected, setSelected] = useState<Set<number>>(() => new Set(booths.map((b) => b.id)));
   const [mode, setMode] = useState<StatsMode>("simple");
   const [shown, setShown] = useState<Shown | null>(null);
-  const [error, setError] = useState<unknown>(null);
+  const [failed, setFailed] = useState<Failed | null>(null);
   const [retry, setRetry] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -44,10 +49,9 @@ export function StatsPanel({
   useEffect(() => {
     if (ids.length === 0) return;
     let stale = false;
-    setError(null);
     load.current(ids, mode).then(
       (s) => !stale && setShown({ key, stats: s }),
-      (e) => !stale && setError(e),
+      (e) => !stale && setFailed({ key, error: e }),
     );
     return () => {
       stale = true;
@@ -64,7 +68,12 @@ export function StatsPanel({
       return n;
     });
 
+  // 보이는 값은 key 가 맞는 것만 인정해서, 선택이 바뀐 바로 그 렌더부터 옛 오류·옛 숫자가 현재 것으로 보이지 않게 한다.
   const current = shown && shown.key === key ? shown.stats : null;
+  const error = failed && failed.key === key ? failed.error : null;
+  // 새 값을 기다리는 동안엔 이전 숫자를 흐리게 남겨 깜빡임을 줄인다.
+  const previous = !current && !error ? (shown?.stats ?? null) : null;
+  const display = current ?? previous;
 
   async function exportXlsx() {
     if (!current) return;
@@ -102,32 +111,33 @@ export function StatsPanel({
       </fieldset>
 
       <Tabs items={MODES} value={mode} onChange={(m) => setMode(m as StatsMode)} />
+      <p className="text-13 text-muted">{MODE_NOTE[mode]}</p>
 
-      {ids.length === 0 ? (
-        <p className="text-15 text-muted">부스를 하나 이상 골라 주세요.</p>
-      ) : error ? (
-        <Notice tone="error" action={{ label: "다시 시도", onClick: () => setRetry((n) => n + 1) }}>
-          {messageFor(error)}
-        </Notice>
-      ) : !current ? (
-        <Spinner />
-      ) : (
-        <>
-          <dl aria-label="합계" className="grid grid-cols-3 gap-2 text-15">
-            {[
-              ["남", current.male],
-              ["여", current.female],
-              ["합계", current.total],
-            ].map(([label, v]) => (
-              <div key={label} className="rounded-md border border-rule-2 p-3">
-                <dt className="text-13 text-muted">{label}</dt>
-                <dd className="text-22 font-extrabold tabular-nums">{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <StatsTable stats={current} />
-        </>
-      )}
+      <div aria-live="polite" aria-busy={ids.length > 0 && !current && !error}>
+        {ids.length === 0 ? (
+          <p className="text-15 text-muted">부스를 하나 이상 골라 주세요.</p>
+        ) : error ? (
+          <Notice
+            tone="error"
+            action={{
+              label: "다시 시도",
+              onClick: () => {
+                setFailed(null);
+                setRetry((n) => n + 1);
+              },
+            }}
+          >
+            {messageFor(error)}
+          </Notice>
+        ) : display ? (
+          <div className={current ? "" : "opacity-50"}>
+            <Totals stats={display} />
+            <StatsTable stats={display} />
+          </div>
+        ) : (
+          <Spinner />
+        )}
+      </div>
 
       {exportError && <Notice tone="error">{exportError}</Notice>}
       <Button variant="secondary" loading={exporting} disabled={ids.length === 0 || !current} onClick={() => void exportXlsx()}>
@@ -135,5 +145,23 @@ export function StatsPanel({
         통합 엑셀
       </Button>
     </section>
+  );
+}
+
+function Totals({ stats }: { stats: Stats }) {
+  const cells: [string, number][] = [
+    ["남", stats.male],
+    ["여", stats.female],
+    ["합계", stats.total],
+  ];
+  return (
+    <dl aria-label="합계" className="mb-4 grid grid-cols-3 gap-2 text-15">
+      {cells.map(([label, v]) => (
+        <div key={label} className="rounded-md border border-rule-2 p-3">
+          <dt className="text-13 text-muted">{label}</dt>
+          <dd className="text-22 font-extrabold tabular-nums">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
