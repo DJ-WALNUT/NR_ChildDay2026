@@ -17,6 +17,8 @@ type Form = {
 };
 type NumKey = "total_limit" | "start_hour" | "end_hour" | "slots_per_hour" | "limit_per_slot";
 
+const NUM_KEYS: NumKey[] = ["total_limit", "start_hour", "end_hour", "slots_per_hour", "limit_per_slot"];
+
 const toForm = (b: Booth): Form => ({
   name: b.name,
   mode: b.mode,
@@ -41,36 +43,45 @@ export function SettingsForm({
   onSaved: (b: Booth) => void;
 }) {
   const [open, setOpen] = useState(false);
-  // 15초 갱신이 입력 중인 값을 덮어쓰지 않도록 처음 한 번과 저장 직후에만 채운다.
-  const [form, setForm] = useState<Form>(() => toForm(booth));
+  // 사용자가 고친 칸만 들고 있고, 나머지는 서버에서 온 부스 값을 그대로 보여준다.
+  // 그래서 15초 갱신으로 새 값이 오면 안 고친 칸은 따라가고 고친 칸은 유지된다.
+  const [edits, setEdits] = useState<Partial<Form>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [done, setDone] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  const base = toForm(booth);
+  const form: Form = { ...base, ...edits };
+  const dirty = (Object.keys(edits) as (keyof Form)[]).filter((k) => edits[k] !== base[k]);
 
   const save = useMutation({
-    mutationFn: () =>
-      onSave({
-        name: form.name,
-        mode: form.mode,
-        use_waitlist: form.use_waitlist,
-        total_limit: toNum(form.total_limit),
-        start_hour: toNum(form.start_hour),
-        end_hour: toNum(form.end_hour),
-        slots_per_hour: toNum(form.slots_per_hour),
-        limit_per_slot: toNum(form.limit_per_slot),
-      }),
+    mutationFn: () => {
+      const body: Partial<BoothSettings> = {};
+      for (const k of dirty) {
+        if (k === "name") body.name = form.name;
+        else if (k === "mode") body.mode = form.mode;
+        else if (k === "use_waitlist") body.use_waitlist = form.use_waitlist;
+        else body[k] = toNum(form[k]);
+      }
+      return onSave(body);
+    },
     onMutate: () => {
       setErrors({});
-      setDone(false);
+      setNote(null);
     },
     onSuccess: (b) => {
-      setForm(toForm(b));
-      setDone(true);
+      setEdits({});
+      setNote("저장했어요.");
       onSaved(b);
     },
     onError: (err) => setErrors(fieldErrors(err)),
   });
 
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof Form>(k: K, v: Form[K]) =>
+    setEdits((e) => {
+      const next = { ...e, [k]: v };
+      if (v === base[k]) delete next[k]; // 원래 값으로 돌아오면 고친 것이 아니다
+      return next;
+    });
   const numField = (k: NumKey, label: string, hint?: string, min?: number, max?: number) => (
     <TextField
       label={label}
@@ -84,7 +95,14 @@ export function SettingsForm({
       hint={hint}
     />
   );
-  const generic = save.isError && Object.keys(errors).length === 0 ? messageFor(save.error) : null;
+
+  // 화면에 그려진 칸에 붙지 못하는 422 오류(예: 숨겨진 칸)는 일반 안내로 보여준다.
+  const shownKeys = new Set<string>(["name", "mode", "use_waitlist", ...(form.mode === "time" ? NUM_KEYS.filter((k) => k !== "total_limit") : ["total_limit"])]);
+  const orphans = Object.entries(errors).filter(([k]) => !shownKeys.has(k)).map(([, v]) => v);
+  const generic =
+    save.isError && (Object.keys(errors).length === 0 || orphans.length > 0)
+      ? [messageFor(save.error), ...orphans].join(" ")
+      : null;
 
   return (
     <section aria-label="부스 설정">
@@ -103,6 +121,11 @@ export function SettingsForm({
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
+          if (dirty.length === 0) {
+            setErrors({});
+            setNote("바꾼 내용이 없어요.");
+            return;
+          }
           save.mutate();
         }}
       >
@@ -128,8 +151,8 @@ export function SettingsForm({
         </label>
         {form.mode === "time" ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {numField("start_hour", "시작 시각", "0~24 사이 정수")}
-            {numField("end_hour", "종료 시각", "시작보다 늦어야 해요")}
+            {numField("start_hour", "시작 시각", "0~23 사이 정수", 0, 23)}
+            {numField("end_hour", "종료 시각", "종료는 시작과 같거나 늦어야 해요", 0, 23)}
             {numField("slots_per_hour", "시간당 타임 수", "1~6", 1, 6)}
             {numField("limit_per_slot", "타임당 인원", "0이면 제한 없음", 0)}
           </div>
@@ -137,7 +160,7 @@ export function SettingsForm({
           numField("total_limit", "선착순 인원", "0이면 제한 없음", 0)
         )}
         {generic && <Notice tone="error">{generic}</Notice>}
-        {done && <Notice tone="info">저장했어요.</Notice>}
+        {note && !save.isError && <Notice tone="info">{note}</Notice>}
         <Button type="submit" loading={save.isPending}>
           저장
         </Button>

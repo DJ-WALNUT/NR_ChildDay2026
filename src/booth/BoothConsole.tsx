@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, RefreshCw, Trash2 } from "lucide-react";
 import { ApiError } from "../api/client";
 import { messageFor } from "../api/messages";
@@ -8,6 +8,7 @@ import type { Reservation, ReservationStatus } from "../api/types";
 import { downloadBlob } from "../lib/download";
 import { buildRosterWorkbook, rosterFileName } from "../lib/excel";
 import { Button, ConfirmDialog, Notice, Spinner, Stamp } from "../ui";
+import { linksOf } from "./BoothSource";
 import type { BoothDetail, BoothSource } from "./BoothSource";
 import { QrPanel } from "./QrPanel";
 import { RosterList } from "./RosterList";
@@ -47,13 +48,24 @@ export default function BoothConsole({
 }) {
   const qc = useQueryClient();
   const key = source.key;
+  // 상태 변경이 진행 중인 동안에는 자동 갱신·창 포커스 갱신·새로고침을 멈춘다.
+  // 서버가 아직 모르는 낙관적 값을 옛 값으로 덮어쓰지 않게 하려는 거예요. 끝나면 onSettled 가 한 번 맞춰요.
+  const statusKey = ["booth-status", ...key];
+  const busy = useIsMutating({ mutationKey: statusKey }) > 0;
   const q = useQuery({
     queryKey: key,
     queryFn: () => source.get(),
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    refetchInterval: busy ? false : 15_000,
+    refetchOnWindowFocus: !busy,
   });
   const [msg, setMsg] = useState<Msg | null>(null);
+  const [pendingRids, setPendingRids] = useState<ReadonlySet<number>>(new Set());
+  const [removed, setRemoved] = useState<{ rid: number } | null>(null);
+  const [clearedAt, setClearedAt] = useState(0);
+  const rosterHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (clearedAt > 0) rosterHeading.current?.focus();
+  }, [clearedAt]);
   const [deleting, setDeleting] = useState<Reservation | null>(null);
   const [clearing, setClearing] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -65,13 +77,13 @@ export default function BoothConsole({
   const refresh = () => qc.invalidateQueries({ queryKey: key });
 
   // 상태 변경: 갱신 요청을 멈추고 → 화면에 먼저 반영 → 실패하면 그 한 건만 되돌림 → 끝나면 서버 값으로 다시 맞춤.
-  const statusKey = ["booth-status", ...key];
   const status = useMutation({
     mutationKey: statusKey,
     mutationFn: (v: { rid: number; status: ReservationStatus; prev: ReservationStatus }) =>
       source.setStatus(v.rid, v.status),
     onMutate: async (v) => {
       setMsg(null);
+      setPendingRids((p) => new Set(p).add(v.rid));
       await qc.cancelQueries({ queryKey: key });
       replaceReservation(v.rid, { status: v.status });
     },
@@ -83,7 +95,12 @@ export default function BoothConsole({
       replaceReservation(v.rid, { status: v.prev });
       setMsg({ tone: "error", text: messageFor(err) });
     },
-    onSettled: () => {
+    onSettled: (_res, _err, v) => {
+      setPendingRids((p) => {
+        const next = new Set(p);
+        next.delete(v.rid);
+        return next;
+      });
       // 다른 상태 변경이 아직 진행 중이면 마지막 것이 끝날 때 한 번만 맞춘다.
       if (qc.isMutating({ mutationKey: statusKey }) <= 1) void refresh();
     },
@@ -104,6 +121,7 @@ export default function BoothConsole({
     onSuccess: (_v, rid) => {
       patchDetail((d) => ({ ...d, reservations: d.reservations.filter((r) => r.id !== rid) }));
       setDeleting(null);
+      setRemoved({ rid });
       void refresh();
     },
     onError: (err) => {
@@ -117,6 +135,7 @@ export default function BoothConsole({
     onSuccess: () => {
       patchDetail((d) => ({ ...d, reservations: [] }));
       setClearing(false);
+      setClearedAt((n) => n + 1);
       void refresh();
     },
     onError: (err) => {
@@ -125,8 +144,9 @@ export default function BoothConsole({
     },
   });
 
-  if (q.isError) {
-    if (notFound && q.error instanceof ApiError && q.error.status === 404) return <>{notFound}</>;
+  // 404 는 링크가 폐기된 것이라 갱신 중에 와도 안내 화면으로 바꾼다. 그 밖의 갱신 실패는 화면을 지키고 안내만 보인다.
+  if (q.isError && notFound && q.error instanceof ApiError && q.error.status === 404) return <>{notFound}</>;
+  if (q.isError && !q.data) {
     return (
       <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
         {messageFor(q.error)}
@@ -169,7 +189,7 @@ export default function BoothConsole({
           >
             {booth.is_active ? "운영 마감" : "운영 시작"}
           </Button>
-          <Button variant="ghost" onClick={() => void q.refetch()} loading={q.isFetching} aria-label="새로고침">
+          <Button variant="ghost" onClick={() => void q.refetch()} loading={q.isFetching} disabled={busy} aria-label="새로고침">
             <RefreshCw aria-hidden className="size-4" />
             새로고침
           </Button>
@@ -190,9 +210,14 @@ export default function BoothConsole({
       <StatsTable stats={stats} />
 
       <section aria-label="명단">
-        <h2 className="mb-2 text-18 font-extrabold tracking-[-0.03em]">명단</h2>
+        <h2 ref={rosterHeading} tabIndex={-1} className="mb-2 text-18 font-extrabold tracking-[-0.03em]">
+          명단
+        </h2>
         <RosterList
           reservations={reservations}
+          pending={pendingRids}
+          removed={removed}
+          fallbackFocus={rosterHeading}
           onStatus={(r, next) => status.mutate({ rid: r.id, status: next, prev: r.status })}
           onDelete={setDeleting}
         />
@@ -218,7 +243,7 @@ export default function BoothConsole({
         </Button>
       </section>
 
-      <QrPanel boothName={booth.name} links={source.links} />
+      <QrPanel boothName={booth.name} links={linksOf(q.data)} />
 
       {access === "own" && extraOwnActions}
 

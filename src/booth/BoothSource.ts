@@ -18,6 +18,10 @@ export interface BoothSource {
   deleteReservation(rid: number): Promise<void>;
   clear(): Promise<{ deleted: number }>;
   exportData(): Promise<ExportData>;
-  /** 화면에 보일 전체 주소 */
-  links: { manage: string; reserve: string };
+}
+
+/** 화면에 보일 전체 주소. 조회한 데이터만으로 정해져요(어댑터에 숨은 상태가 없어요). */
+export function linksOf(d: BoothDetail): { manage: string; reserve: string } {
+  const origin = window.location.origin;
+  return { manage: `${origin}/b/${d.booth.manage_token}`, reserve: `${origin}/${d.org.slug}/reserve/${d.booth.id}` };
 }

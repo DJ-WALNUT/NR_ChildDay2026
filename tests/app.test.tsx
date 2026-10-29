@@ -1,7 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "../src/api/client";
 import { routes } from "../src/routes";
+
+vi.mock("../src/api/link", async (orig) => ({ ...(await orig<typeof import("../src/api/link")>()), getBoothLink: vi.fn() }));
+import * as link from "../src/api/link";
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -19,9 +23,11 @@ describe("routes", () => {
   });
 
   it("/b/abc 는 /:slug 로 잡히지 않고 부스 링크로 간다", async () => {
+    vi.mocked(link.getBoothLink).mockRejectedValue(new ApiError(404, "not_found"));
     renderAt("/b/abc");
-    // 부스 링크 화면은 따로 불러오고, 불러온 뒤 조회를 시작한다(테스트에는 서버가 없어 연결 오류 안내가 보인다).
-    expect(await screen.findByRole("alert", {}, { timeout: 3000 })).toHaveTextContent("연결이 불안정해요");
+    // 부스 링크 화면은 따로 불러온다. 조회를 흉내 내서 불러온 화면이 abc 토큰으로 조회하는지 본다.
+    expect(await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(link.getBoothLink).toHaveBeenCalledWith("abc");
   });
 
   it.each(["/b", "/p", "/reserve", "/check", "/a/b/c/d"])("%s 는 찾을 수 없어요 화면", (path) => {
