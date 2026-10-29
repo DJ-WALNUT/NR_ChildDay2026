@@ -55,6 +55,7 @@ export default function PartnerPage() {
               ))}
             </ul>
             <StatsPanel
+              key={token}
               booths={booths}
               loadStats={(ids, mode) => partnerStats(token, { booth_ids: ids, mode })}
               loadExport={(ids) => partnerExport(token, { booth_ids: ids })}

@@ -219,6 +219,23 @@ describe("StatsPanel", () => {
     expect(link.partnerStats).toHaveBeenCalledTimes(2);
   });
 
+  it("실패했던 선택으로 돌아와 성공하면 옛 오류가 사라진다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(link.getPartner).mockResolvedValue(data);
+    vi.mocked(link.partnerStats)
+      .mockRejectedValueOnce(new ApiError(500, "server_error"))
+      .mockResolvedValue(stats);
+    renderAt("/p/tok");
+    expect(await screen.findByRole("button", { name: "다시 시도" }, T)).toBeInTheDocument();
+    const box = screen.getByRole("checkbox", { name: "팽이 돌리기" });
+    await user.click(box);
+    expect(await screen.findByText("3", { selector: "dd" })).toBeInTheDocument();
+    await user.click(box);
+    await waitFor(() => expect(link.partnerStats).toHaveBeenLastCalledWith("tok", { booth_ids: [12, 13], mode: "simple" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "다시 시도" })).not.toBeInTheDocument());
+    expect(screen.getByText("3", { selector: "dd" })).toBeInTheDocument();
+  });
+
   it("엑셀 실패 안내를 보여준다", async () => {
     const user = userEvent.setup();
     vi.mocked(link.getPartner).mockResolvedValue(data);

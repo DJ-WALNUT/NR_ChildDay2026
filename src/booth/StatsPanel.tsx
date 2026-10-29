@@ -49,8 +49,13 @@ export function StatsPanel({
   useEffect(() => {
     if (ids.length === 0) return;
     let stale = false;
+    setFailed((f) => (f && f.key === key ? null : f)); // 다시 방문한 선택은 옛 오류를 지우고 새로 받는다
     load.current(ids, mode).then(
-      (s) => !stale && setShown({ key, stats: s }),
+      (s) => {
+        if (stale) return;
+        setShown({ key, stats: s });
+        setFailed((f) => (f && f.key === key ? null : f));
+      },
       (e) => !stale && setFailed({ key, error: e }),
     );
     return () => {
