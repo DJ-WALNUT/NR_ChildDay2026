@@ -60,3 +60,7 @@ body {
 .on-ink :focus-visible {
   outline-color: var(--color-ticket);
 }
+/* 잉크 화면 안의 종이 면(입장권 본문·대화상자)에서는 다시 종이 위 규칙(ink)을 쓴다 */
+.on-paper :focus-visible {
+  outline-color: var(--color-ink);
+}

@@ -138,7 +138,7 @@ export default function CheckPage() {
         </>
       )}
       {showForm && (
-        <form onSubmit={onForm} noValidate className="space-y-4 rounded-lg bg-paper p-4 text-ink">
+        <form onSubmit={onForm} noValidate className="on-paper space-y-4 rounded-lg bg-paper p-4 text-ink">
           <h1 className="text-18 font-extrabold">내 신청 확인</h1>
           <TextField
             label="참가자 이름"

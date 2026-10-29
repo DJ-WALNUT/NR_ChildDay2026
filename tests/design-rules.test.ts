@@ -59,3 +59,10 @@ describe("design rules", () => {
     expect(RULES[0][1].test("bg-ink text-paper")).toBe(false);
   });
 });
+
+describe("포커스 색 범위", () => {
+  it("잉크 화면 안의 종이 면(.on-paper)은 포커스 외곽선을 ink 로 되돌린다", () => {
+    const css = readFileSync(join(SRC, "index.css"), "utf8");
+    expect(css).toMatch(/\.on-paper\s+:focus-visible\s*\{[^}]*outline-color:\s*var\(--color-ink\)/);
+  });
+});

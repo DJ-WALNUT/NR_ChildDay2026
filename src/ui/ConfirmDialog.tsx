@@ -78,7 +78,7 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
-        className="w-full max-w-sm rounded-lg bg-paper p-5 text-ink"
+        className="on-paper w-full max-w-sm rounded-lg bg-paper p-5 text-ink"
       >
         <h2 id={titleId} className="text-18 font-extrabold tracking-[-0.03em]">
           {title}

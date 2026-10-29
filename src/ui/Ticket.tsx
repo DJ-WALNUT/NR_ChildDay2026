@@ -19,7 +19,7 @@ export function Ticket({
       <div className="bg-paper">
         <Perforation onDark={onDark} />
       </div>
-      <div className="rounded-b-lg bg-paper px-4 py-4 text-ink">{children}</div>
+      <div className="on-paper rounded-b-lg bg-paper px-4 py-4 text-ink">{children}</div>
     </section>
   );
 }
