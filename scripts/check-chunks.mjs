@@ -3,7 +3,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const LIMIT = 400_000; // 바이트, entry 와 modulepreload 묶음의 합계
-const MARKERS = ["QRCodeCanvas", "QRCodeSVG", "ExcelJS", "exceljs"];
+// "명단 엑셀" 은 직원용 BoothConsole 에만 있는 문구라, 방문객 묶음에 직원 화면이 새면 잡힌다.
+const MARKERS = ["QRCodeCanvas", "QRCodeSVG", "ExcelJS", "exceljs", "명단 엑셀"];
 const dist = join(import.meta.dirname, "..", "dist");
 const html = readFileSync(join(dist, "index.html"), "utf8");
 const m = /<script[^>]+src="\/?(assets\/[^"]+\.js)"/.exec(html);

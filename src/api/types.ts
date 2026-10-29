@@ -123,7 +123,7 @@ export interface Reservation {
   code: string;
   slot: string;
   status: ReservationStatus;
-  created_at: string;
+  created_at: number; // UNIX 초
 }
 
 export interface StatsRow {

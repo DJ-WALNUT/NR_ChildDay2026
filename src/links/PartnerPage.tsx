@@ -4,12 +4,15 @@ import { ApiError } from "../api/client";
 import { getPartner, linkKeys, partnerExport, partnerStats } from "../api/link";
 import { messageFor } from "../api/messages";
 import { StatsPanel } from "../booth/StatsPanel";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { rosterFileName } from "../lib/excel";
 import { EmptyState, NotFound, Notice, PageFrame, Spinner, Stamp, Stub } from "../ui";
 
 export default function PartnerPage() {
   const { token = "" } = useParams();
   const q = useQuery({ queryKey: [...linkKeys.partner(token)], queryFn: () => getPartner(token) });
+
+  useDocumentTitle(q.data ? `${q.data.partner.name} 실적` : null);
 
   let body;
   if (q.isError && q.error instanceof ApiError && q.error.status === 404) {
@@ -45,7 +48,7 @@ export default function PartnerPage() {
                     right={
                       <span className="flex items-center gap-2">
                         <span className="text-13 tabular-nums">{b.count}명</span>
-                        {b.is_active ? <Stamp kind="live" /> : <Stamp kind="closed" />}
+                        {b.is_active ? <Stamp kind="live" /> : <Stamp kind="closed" onDark />}
                       </span>
                     }
                   >

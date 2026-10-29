@@ -11,6 +11,7 @@ const MESSAGES: Record<string, string> = {
   not_found: "찾을 수 없어요.",
   invalid: "입력한 내용을 다시 확인해 주세요.",
   network: "연결이 불안정해요. 잠시 뒤 다시 시도해 주세요.",
+  bad_response: "서버 응답을 읽지 못했어요. 잠시 뒤 다시 시도해 주세요.",
   unauthorized: "로그인이 필요해요.",
   forbidden: "이 작업을 할 권한이 없어요.",
   csrf: "화면이 오래되었어요. 새로고침한 뒤 다시 시도해 주세요.",

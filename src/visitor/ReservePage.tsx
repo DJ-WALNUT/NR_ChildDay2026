@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { fieldErrors, messageFor } from "../api/messages";
@@ -9,6 +9,7 @@ import { isTimeAvailability } from "../api/types";
 import type { Gender } from "../api/types";
 import { normalizeCode, normalizeName } from "../lib/identity";
 import { compareSlots } from "../lib/slots";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { saveTicket } from "../lib/ticketStore";
 import { Button, Choice, Notice, PageFrame, SelectField, Spinner, Stamp, TextField, Ticket } from "../ui";
 import { QueryFailure, VisitorFrame } from "./BrandHeader";
@@ -36,6 +37,7 @@ function focusFirstInvalid(form: HTMLFormElement | null, errs: Errors) {
 export default function ReservePage() {
   const { slug = "", boothId = "" } = useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const q = useQuery({
     queryKey: publicKeys.booth(slug, boothId),
     queryFn: () => getBoothPage(slug, boothId),
@@ -50,9 +52,11 @@ export default function ReservePage() {
   const [slot, setSlot] = useState<string | null>(null);
   const [agree, setAgree] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
-  const [submitError, setSubmitError] = useState<{ err: unknown } | null>(null);
+  const [submitError, setSubmitError] = useState<{ err: unknown; who: { name: string; code: string } } | null>(null);
   const [busy, setBusy] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const inFlight = useRef(false);
+  useDocumentTitle(q.data ? `${q.data.booth.name} 신청 · ${q.data.org.name}` : null);
 
   if (q.isError && !q.data) return <QueryFailure error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) {
@@ -79,7 +83,7 @@ export default function ReservePage() {
           <p className="text-15">지금은 신청을 받지 않아요.</p>
           <Stamp kind="closed" />
         </div>
-        {event.notice && <p className="mt-3 text-13 break-words text-muted">{event.notice}</p>}
+        {event.notice && <p className="mt-3 text-13 break-words whitespace-pre-line text-muted">{event.notice}</p>}
         <Link to={`/${slug}`} className="mt-3 inline-block text-15 font-bold underline">
           다른 부스 보기
         </Link>
@@ -119,6 +123,8 @@ export default function ReservePage() {
     if (Object.keys(next).length > 0) focusFirstInvalid(formRef.current, next);
     if (!n.ok || !c.ok || !gender || !age || (isTime && !slot) || !agree) return;
 
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     try {
       const res = await reserve(boothId, {
@@ -128,12 +134,23 @@ export default function ReservePage() {
         age_group: age,
         ...(isTime && slot ? { slot } : {}),
       });
-      saveTicket({ booth_id: Number(boothId), slug, name: n.value, code: c.value });
+      saveTicket({ booth_id: Number(boothId), slug, name: n.value, code: c.value, slot: res.slot, status: res.status });
+      // 같은 사람의 옛 조회 결과가 캐시에 남아 있으면 새 신청 대신 보이므로 지운다.
+      qc.removeQueries({ queryKey: ["public", "lookup", boothId, n.value, c.value] });
       navigate(`/${slug}/check/${boothId}`, {
-        state: { reserved: { name: n.value, code: c.value, status: res.status } },
+        state: {
+          reserved: {
+            name: n.value,
+            code: c.value,
+            slot: res.slot,
+            status: res.status,
+            booth_name: booth.name,
+            at: Date.now(),
+          },
+        },
       });
     } catch (err) {
-      setSubmitError({ err });
+      setSubmitError({ err, who: { name: n.value, code: c.value } });
       const server = fieldErrors(err) as Errors;
       setErrors(server);
       focusFirstInvalid(formRef.current, server);
@@ -144,6 +161,7 @@ export default function ReservePage() {
         });
       }
       setBusy(false);
+      inFlight.current = false;
     }
   }
 
@@ -161,7 +179,7 @@ export default function ReservePage() {
     <form ref={formRef} onSubmit={onSubmit} noValidate>
       <Ticket header={<TicketHeader eventName={event.name} boothName={booth.name} />}>
         <div className="space-y-4">
-          {event.notice && <p className="text-13 break-words text-muted">{event.notice}</p>}
+          {event.notice && <p className="text-13 break-words whitespace-pre-line text-muted">{event.notice}</p>}
           {isTime ? (
             <div data-field="slot">
               <Choice label="시간 선택" value={slot} options={slotOptions} onChange={setSlot} error={errors.slot} />
@@ -242,7 +260,11 @@ export default function ReservePage() {
               {duplicate && (
                 <>
                   {" "}
-                  <Link to={`/${slug}/check/${boothId}`} className="font-bold underline">
+                  <Link
+                    to={`/${slug}/check/${boothId}`}
+                    state={{ reserved: submitError.who }}
+                    className="font-bold underline"
+                  >
                     내 신청 확인
                   </Link>
                 </>

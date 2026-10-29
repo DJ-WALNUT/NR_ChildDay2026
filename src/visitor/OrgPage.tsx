@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { getOrgPage, publicKeys } from "../api/public";
 import { EmptyState, PageFrame, Spinner, Stamp, Stub } from "../ui";
 import { QueryFailure, VisitorFrame } from "./BrandHeader";
@@ -7,6 +8,8 @@ import { QueryFailure, VisitorFrame } from "./BrandHeader";
 export default function OrgPage() {
   const { slug = "" } = useParams();
   const q = useQuery({ queryKey: publicKeys.org(slug), queryFn: () => getOrgPage(slug) });
+
+  useDocumentTitle(q.data ? `${q.data.org.name} 체험부스` : null);
 
   if (q.isError) return <QueryFailure error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) {
@@ -24,7 +27,7 @@ export default function OrgPage() {
       {shown.map((ev) => (
         <section key={ev.id} aria-label={ev.name} className="space-y-2">
           <h2 className="text-18 font-extrabold break-words">{ev.name}</h2>
-          {ev.notice && <p className="text-13 break-words text-rule">{ev.notice}</p>}
+          {ev.notice && <p className="text-13 break-words whitespace-pre-line text-rule">{ev.notice}</p>}
           <ul className="space-y-2">
             {ev.booths.map((b, i) => (
               <li key={b.id}>

@@ -68,7 +68,7 @@ export function VisitorFrame({
     <PageFrame surface="ink" width="narrow">
       <BrandHeader orgName={orgName} orgLogoUrl={orgLogoUrl} eventName={eventName} eventLogoUrl={eventLogoUrl} asTitle={asTitle} />
       <main className="space-y-4">{children}</main>
-      <footer className="mt-8 text-12 text-faint">
+      <footer className="mt-8 text-12 text-muted">
         © {new Date().getFullYear()} {orgName}
       </footer>
     </PageFrame>
@@ -80,15 +80,20 @@ export function QueryFailure({ error, onRetry }: { error: unknown; onRetry: () =
   if (error instanceof ApiError && error.status === 404) {
     return (
       <PageFrame surface="ink" width="narrow">
-        <NotFound />
+        <main>
+          <NotFound />
+        </main>
       </PageFrame>
     );
   }
   return (
     <PageFrame surface="ink" width="narrow">
-      <Notice tone="error" action={{ label: "다시 시도", onClick: onRetry }}>
-        {messageFor(error)}
-      </Notice>
+      <main className="space-y-4">
+        <h1 className="sr-only">불러오지 못했어요</h1>
+        <Notice tone="error" action={{ label: "다시 시도", onClick: onRetry }}>
+          {messageFor(error)}
+        </Notice>
+      </main>
     </PageFrame>
   );
 }

@@ -29,10 +29,11 @@ export function Notice({
   );
 }
 
-export function EmptyState({ title, body }: { title: string; body?: ReactNode }) {
+export function EmptyState({ title, body, heading = false }: { title: string; body?: ReactNode; heading?: boolean }) {
+  const Title = heading ? "h1" : "p";
   return (
     <div className="px-4 py-10 text-center">
-      <p className="text-18 font-extrabold tracking-[-0.03em]">{title}</p>
+      <Title className="text-18 font-extrabold tracking-[-0.03em]">{title}</Title>
       {body && <p className="mt-2 text-15">{body}</p>}
     </div>
   );
@@ -45,5 +46,5 @@ export function NotFound({
   title?: string;
   body?: ReactNode;
 }) {
-  return <EmptyState title={title} body={body} />;
+  return <EmptyState title={title} body={body} heading />;
 }

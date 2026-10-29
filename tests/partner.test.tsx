@@ -86,7 +86,9 @@ describe("PartnerPage", () => {
     expect(a).toHaveAttribute("href", "/p/tok/booths/12");
     expect(screen.getByRole("link", { name: /팽이 돌리기/ })).toHaveAttribute("href", "/p/tok/booths/13");
     expect(within(a).getByText("운영 중")).toBeInTheDocument();
-    expect(within(screen.getByRole("link", { name: /팽이 돌리기/ })).getByText("마감")).toBeInTheDocument();
+    // 마감 도장은 ink-2 바탕 위에서 대비가 나도록 종이 판에 찍는다.
+    expect(within(screen.getByRole("link", { name: /팽이 돌리기/ })).getByText("마감")).toHaveClass("bg-paper");
+    expect(document.title).toBe("청년부 실적");
   });
 
   it("처음엔 전체 부스·단순 합계로 실적을 받고, 엄격 탭이면 다시 받는다", async () => {
@@ -161,12 +163,20 @@ describe("PartnerBoothPage", () => {
     expect(screen.getByRole("link", { name: /운영 단체로/ })).toHaveAttribute("href", "/p/tok");
   });
 
-  it("폐기된 토큰은 만료 문구를 보여준다", async () => {
-    vi.mocked(link.getPartner).mockRejectedValue(new ApiError(404, "not_found"));
+  it("그 운영 단체에 없는 부스(404)는 배정 안내와 뒤로 링크를 보여준다", async () => {
     vi.mocked(link.getPartnerBooth).mockRejectedValue(new ApiError(404, "not_found"));
     vi.mocked(link.listReservationsPartnerBooth).mockRejectedValue(new ApiError(404, "not_found"));
-    renderAt("/p/gone/booths/12");
-    expect(await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, T)).toBeInTheDocument();
+    renderAt("/p/tok/booths/99");
+    expect(await screen.findByText("이 부스는 더 이상 이 운영 단체에 배정되어 있지 않아요.", {}, T)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /운영 단체로/ })).toHaveAttribute("href", "/p/tok");
+  });
+
+  it("탭 제목은 부스 관리 · 부스명", async () => {
+    vi.mocked(link.getPartnerBooth).mockResolvedValue({ booth: mk(12, "비누 만들기") });
+    vi.mocked(link.listReservationsPartnerBooth).mockResolvedValue({ reservations: [] });
+    renderAt("/p/tok/booths/12");
+    await screen.findByRole("heading", { name: "비누 만들기" }, T);
+    expect(document.title).toBe("부스 관리 · 비누 만들기");
   });
 });
 

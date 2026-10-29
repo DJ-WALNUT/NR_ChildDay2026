@@ -54,7 +54,7 @@ const res = (id: number, name: string, code: string, slot: string, status: Reser
   code,
   slot,
   status,
-  created_at: "2026-10-30T01:00:00",
+  created_at: 1793322000,
 });
 const detail = (): BoothDetail => ({
   booth,
@@ -237,6 +237,30 @@ describe("BoothConsole", () => {
     await screen.findByText("김나름");
     await user.click(screen.getByRole("button", { name: "새로고침" }));
     expect(await screen.findByText("링크 만료")).toBeInTheDocument();
+  });
+
+  it("404 를 한 번 받으면 자동 갱신과 창 포커스 갱신을 멈추고 안내 화면을 유지한다", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const get = vi.fn().mockResolvedValueOnce(detail()).mockRejectedValue(new ApiError(404, "not_found"));
+      wrap(<BoothConsole source={fakeSource({ get })} access="manage" notFound={<p>링크 만료</p>} />);
+      await screen.findByText("김나름");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(16_000);
+      });
+      expect(await screen.findByText("링크 만료")).toBeInTheDocument();
+      const calls = get.mock.calls.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000);
+        focusManager.setFocused(false);
+        focusManager.setFocused(true);
+        await vi.advanceTimersByTimeAsync(1_000);
+      });
+      expect(get).toHaveBeenCalledTimes(calls);
+      expect(screen.getByText("링크 만료")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("상태를 바꾸면 그 행으로 포커스가 가고 이름표에 새 상태가 들어간다", async () => {

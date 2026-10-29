@@ -61,10 +61,12 @@ export async function api<T = unknown>(
 
   if (res.ok) {
     if (res.status === 204) return undefined as T;
-    const type = res.headers.get("content-type") ?? "";
-    if (!type.includes("application/json")) return undefined as T;
     const text = await res.text();
     if (text.trim() === "") return undefined as T;
+    // 본문이 있는데 JSON 이 아니면(예: 잘못된 주소가 돌려준 index.html) 성공으로 넘기지 않는다.
+    if (!(res.headers.get("content-type") ?? "").includes("application/json")) {
+      throw new ApiError(res.status, "bad_response");
+    }
     try {
       return JSON.parse(text) as T;
     } catch {

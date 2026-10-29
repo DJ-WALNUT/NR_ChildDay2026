@@ -13,7 +13,7 @@ export function TicketHeader({ eventName, boothName }: { eventName: string; boot
   return (
     <>
       <p className="text-13 font-bold break-words">체험부스 입장권 · {eventName}</p>
-      <h1 className="mt-1 text-22 font-extrabold break-words tracking-[-0.03em]">{boothName}</h1>
+      <h1 tabIndex={-1} className="mt-1 text-22 font-extrabold break-words tracking-[-0.03em]">{boothName}</h1>
     </>
   );
 }
@@ -53,7 +53,7 @@ export function TicketCard({
       <div className="mt-4 flex justify-end">
         <Stamp kind={STAMP[status]} />
       </div>
-      {notice && <p className="mt-3 text-13 break-words text-muted">{notice}</p>}
+      {notice && <p className="mt-3 text-13 break-words whitespace-pre-line text-muted">{notice}</p>}
       {(cancelable || onForget) && (
         <div className="mt-4 flex flex-wrap gap-2">
           {cancelable && (

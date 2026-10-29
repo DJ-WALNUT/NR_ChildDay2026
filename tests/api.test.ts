@@ -82,6 +82,18 @@ describe("api client", () => {
     expect(await api("POST", "/api/public/booths/1/cancel", {})).toBeUndefined();
   });
 
+  it("2xx 인데 JSON 이 아닌 본문은 bad_response 로 실패한다", async () => {
+    fetchMock.mockResolvedValue(new Response("<!doctype html><html></html>", { status: 200, headers: { "content-type": "text/html" } }));
+    const err = await api("GET", "/api/public/orgs/a").catch((e) => e);
+    expect(err).toMatchObject({ status: 200, code: "bad_response" });
+    expect(messageFor(err)).toBe("서버 응답을 읽지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+  });
+
+  it("2xx 이고 본문이 비어 있으면 content-type 과 상관없이 undefined", async () => {
+    fetchMock.mockResolvedValue(new Response("", { status: 200, headers: { "content-type": "text/html" } }));
+    expect(await api("POST", "/api/public/booths/1/cancel", {})).toBeUndefined();
+  });
+
   it("falls back for unknown codes and covers required codes", () => {
     const generic = "문제가 생겼어요. 잠시 뒤 다시 시도해 주세요.";
     expect(messageFor(new ApiError(500, "weird"))).toBe(generic);

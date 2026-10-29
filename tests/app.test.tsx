@@ -50,7 +50,7 @@ describe("routes", () => {
     vi.mocked(link.partnerStats).mockRejectedValue(new ApiError(404, "not_found"));
     vi.mocked(link.getPartner).mockRejectedValue(new ApiError(404, "not_found"));
     renderAt("/p/abc/booths/3");
-    expect(await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByText("이 부스는 더 이상 이 운영 단체에 배정되어 있지 않아요.", {}, { timeout: 3000 })).toBeInTheDocument();
     expect(link.getPartnerBooth).toHaveBeenCalledWith("abc", "3");
   });
 

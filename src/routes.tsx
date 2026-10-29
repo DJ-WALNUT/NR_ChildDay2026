@@ -9,7 +9,9 @@ import RootPage from "./visitor/RootPage";
 function NotFoundPage() {
   return (
     <PageFrame surface="ink" width="narrow">
-      <NotFound />
+      <main>
+        <NotFound />
+      </main>
     </PageFrame>
   );
 }

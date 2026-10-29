@@ -5,6 +5,7 @@ import { Download, RefreshCw, Trash2 } from "lucide-react";
 import { ApiError } from "../api/client";
 import { messageFor } from "../api/messages";
 import type { Reservation, ReservationStatus } from "../api/types";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { downloadBlob } from "../lib/download";
 import { buildRosterWorkbook, rosterFileName } from "../lib/excel";
 import { Button, ConfirmDialog, Notice, Spinner, Stamp } from "../ui";
@@ -27,6 +28,8 @@ function Count({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
+
+const isGone = (err: unknown) => err instanceof ApiError && err.status === 404;
 
 function clock(ms: number): string {
   const d = new Date(ms);
@@ -55,9 +58,11 @@ export default function BoothConsole({
   const q = useQuery({
     queryKey: key,
     queryFn: () => source.get(),
-    refetchInterval: busy ? false : 15_000,
-    refetchOnWindowFocus: !busy,
+    // 404 는 링크가 폐기된 것이라 한 번 받으면 자동·창 포커스 갱신을 멈춘다(서버의 링크 조회 제한에 걸리지 않게).
+    refetchInterval: (query) => (busy || isGone(query.state.error) ? false : 15_000),
+    refetchOnWindowFocus: (query) => !busy && !isGone(query.state.error),
   });
+  useDocumentTitle(q.data ? `부스 관리 · ${q.data.booth.name}` : null);
   const [msg, setMsg] = useState<Msg | null>(null);
   const [pendingRids, setPendingRids] = useState<ReadonlySet<number>>(new Set());
   const [removed, setRemoved] = useState<{ rid: number } | null>(null);
