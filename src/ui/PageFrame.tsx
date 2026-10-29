@@ -16,7 +16,7 @@ export function PageFrame({
   width?: "narrow" | "wide";
 }) {
   return (
-    <div className={`min-h-screen ${SURFACE[surface]}`}>
+    <div className={`min-h-dvh ${SURFACE[surface]}`}>
       <div className={`mx-auto w-full px-4 py-6 ${width === "narrow" ? "max-w-120" : "max-w-300"}`}>{children}</div>
     </div>
   );

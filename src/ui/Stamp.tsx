@@ -20,9 +20,12 @@ const LOOK: Record<StampKind, string> = {
   live: "border-2 border-ink bg-ink text-ticket",
 };
 
-export function Stamp({ kind, children }: { kind: StampKind; children?: ReactNode }) {
+// onDark: 잉크 바탕 위에서는 종이 판 위에 찍어 대비를 종이 기준으로 유지한다.
+export function Stamp({ kind, children, onDark = false }: { kind: StampKind; children?: ReactNode; onDark?: boolean }) {
+  let look = LOOK[kind];
+  if (onDark) look = kind === "live" ? "border-2 border-ticket bg-ticket text-ink" : `${look} bg-paper`;
   return (
-    <span className={`inline-block whitespace-nowrap rounded-sm px-2 py-0.5 text-13 font-extrabold ${LOOK[kind]}`}>
+    <span className={`inline-block whitespace-nowrap rounded-sm px-2 py-0.5 text-13 font-extrabold ${look}`}>
       {children ?? TEXT[kind]}
     </span>
   );

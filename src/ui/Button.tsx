@@ -15,7 +15,7 @@ function look(variant: NonNullable<ButtonProps["variant"]>, onDark: boolean): st
     case "secondary":
       return onDark ? "bg-transparent text-paper border-paper" : "bg-transparent text-ink border-ink";
     case "danger":
-      return "bg-stamp-red text-ink border-stamp-red";
+      return "bg-stamp-red text-paper border-stamp-red";
     case "ghost":
       return onDark
         ? "bg-transparent text-paper border-transparent underline"

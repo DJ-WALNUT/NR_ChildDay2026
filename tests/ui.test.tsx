@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import {
   Button,
@@ -106,6 +107,45 @@ describe("ConfirmDialog", () => {
     expect(screen.getByRole("button", { name: "취소" })).toHaveFocus();
     await user.tab({ shift: true });
     expect(screen.getByRole("button", { name: "확인" })).toHaveFocus();
+  });
+});
+
+describe("ConfirmDialog 포커스 이탈", () => {
+  it("배경을 눌러 포커스가 body 로 가도 Esc 가 닫는다", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    render(<ConfirmDialog open title="t" body="b" confirmLabel="확인" onConfirm={() => {}} onCancel={onCancel} />);
+    await user.click(screen.getByRole("dialog").parentElement!);
+    expect(document.body).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+  it("배경을 누른 뒤 Tab 은 대화상자 안으로 포커스를 돌린다", async () => {
+    const user = userEvent.setup();
+    render(<ConfirmDialog open title="t" body="b" confirmLabel="확인" onConfirm={() => {}} onCancel={() => {}} />);
+    await user.click(screen.getByRole("dialog").parentElement!);
+    await user.tab();
+    expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement);
+  });
+  it("열려 있는 동안 body 스크롤을 잠그고 닫으면 풀어요", () => {
+    const { rerender } = render(
+      <ConfirmDialog open title="t" body="b" confirmLabel="확인" onConfirm={() => {}} onCancel={() => {}} />,
+    );
+    expect(document.body.style.overflow).toBe("hidden");
+    rerender(<ConfirmDialog open={false} title="t" body="b" confirmLabel="확인" onConfirm={() => {}} onCancel={() => {}} />);
+    expect(document.body.style.overflow).toBe("");
+  });
+  it("requireText 가 맞으면 Enter 로 확인한다", async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn();
+    render(
+      <ConfirmDialog open title="t" body="b" confirmLabel="삭제" requireText="가나" onConfirm={onConfirm} onCancel={() => {}} />,
+    );
+    await user.keyboard("가");
+    await user.keyboard("{Enter}");
+    expect(onConfirm).not.toHaveBeenCalled();
+    await user.keyboard("나{Enter}");
+    expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -225,6 +265,44 @@ describe("Tabs / Stub / PageFrame", () => {
     expect(screen.getByRole("tab", { name: /하나/ })).toHaveAttribute("aria-selected", "true");
     await user.click(screen.getByRole("tab", { name: "둘" }));
     expect(onChange).toHaveBeenCalledWith("b");
+  });
+  it("Stub to 는 새로고침 없이 라우트를 바꾼다", async () => {
+    const user = userEvent.setup();
+    function Where() {
+      return <p data-testid="loc">{useLocation().pathname}</p>;
+    }
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Stub number="03" to="/booth/3">
+          세 번째
+        </Stub>
+        <Where />
+        <Routes>
+          <Route path="*" element={null} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole("link", { name: /세 번째/ });
+    expect(link).toHaveAttribute("href", "/booth/3");
+    await user.click(link);
+    expect(screen.getByTestId("loc")).toHaveTextContent("/booth/3");
+  });
+  it("Stamp onDark 는 종이 판 위에 놓인다", () => {
+    render(
+      <>
+        <Stamp kind="closed" onDark />
+        <Stamp kind="live" onDark />
+      </>,
+    );
+    expect(screen.getByText("마감")).toHaveClass("bg-paper");
+    expect(screen.getByText("운영 중")).toHaveClass("bg-ticket", "text-ink");
+  });
+  it("필드 오류는 role=alert 이고 기존 aria-describedby 를 합친다", () => {
+    render(<TextField label="이름" error="필수" aria-describedby="extra" />);
+    const input = screen.getByLabelText("이름");
+    expect(screen.getByRole("alert")).toHaveTextContent("필수");
+    expect(input.getAttribute("aria-describedby")).toContain("extra");
+    expect(input.getAttribute("aria-describedby")).toContain("-error");
   });
   it("Stub 은 onClick 이 있으면 버튼, href 면 링크다", async () => {
     const user = userEvent.setup();

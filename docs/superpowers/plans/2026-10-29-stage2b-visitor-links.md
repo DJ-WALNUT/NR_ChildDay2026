@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - 작업 브랜치 `update`. 커밋 메시지 `[feat] …`/`[fix] …`/`[test] …`/`[chore] …`/`[docs] …` + 빈 줄 + 작성 모델의 Co-Authored-By 줄.
-- 색은 스펙 3.1 토큰만: `ink #16181d`, `ink-2 #2a2d34`, `paper #f3efe4`, `paper-2 #f7f5ef`, `rule #d8d2c2`, `rule-2 #e3ddcf`, `muted #5b5a55`, `faint #8a8780`, `ticket #ffcc1a`, `stamp-red #e2533b`, `stamp-green #1f6f4a`, `stamp-amber #a15c00`. `src/index.css` 밖에서 hex/rgb 색 값 금지. 파랑 금지.
+- 색은 스펙 3.1 토큰만: `ink #16181d`, `ink-2 #2a2d34`, `paper #f3efe4`, `paper-2 #f7f5ef`, `rule #d8d2c2`, `rule-2 #e3ddcf`, `muted #5b5a55`, `faint #8a8780`, `ticket #ffcc1a`, `stamp-red #c0402a`, `stamp-green #1f6f4a`, `stamp-amber #a15c00`. `src/index.css` 밖에서 hex/rgb 색 값 금지. 파랑 금지.
 - 둥글기 4/6/8px 세 단계만(`rounded-sm`=4, `rounded-md`=6, `rounded-lg`=8로 토큰 재정의). `rounded-xl` 이상·임의값(`rounded-[…]`) 금지. 반원 홈(절취선 끝)만 `rounded-full` 허용.
 - 글꼴 프리텐다드(500/700/800) 자체 호스팅. 크기 단계 12/13/15/18/22/28px만. 숫자는 `tabular-nums`.
 - 이모지, 그라데이션, 장식 그림자 금지. 아이콘은 `lucide-react` 선 아이콘만.

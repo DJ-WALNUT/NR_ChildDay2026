@@ -1,16 +1,21 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 export function Stub({
   number,
   children,
   onClick,
+  to,
   href,
   closed = false,
   right,
 }: {
   number: string;
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: (e: MouseEvent<HTMLElement>) => void;
+  /** 앱 안 이동(SPA). react-router Link 로 그려요. Router 안에서만 써요. */
+  to?: string;
+  /** 외부 주소 전용. 앱 안 이동에는 `to` 를 써요. */
   href?: string;
   closed?: boolean;
   right?: ReactNode;
@@ -26,6 +31,13 @@ export function Stub({
     </>
   );
   const cls = `flex min-h-14 w-full items-stretch rounded-lg ${body}`;
+  if (to) {
+    return (
+      <Link to={to} onClick={onClick} className={cls}>
+        {content}
+      </Link>
+    );
+  }
   if (href) {
     return (
       <a href={href} onClick={onClick} className={cls}>

@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
 import { Button } from "./Button";
 
 export interface ConfirmDialogProps {
@@ -23,38 +22,53 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
   const input = useRef<HTMLInputElement>(null);
   const [typed, setTyped] = useState("");
 
+  const cancelRef = useRef(onCancel);
+  useEffect(() => {
+    cancelRef.current = onCancel;
+  });
+
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     (input.current ?? cancelBtn.current)?.focus();
-    return () => previous?.focus();
-  }, []);
+    const scrollLock = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      onCancel();
-      return;
+    function onKeyDown(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancelRef.current();
+        return;
+      }
+      if (e.key !== "Tab" || !root.current) return;
+      const items = Array.from(root.current.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      const outside = !root.current.contains(active);
+      if (outside) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
-    if (e.key !== "Tab" || !root.current) return;
-    const items = Array.from(root.current.querySelectorAll<HTMLElement>(FOCUSABLE));
-    if (items.length === 0) return;
-    const first = items[0];
-    const last = items[items.length - 1];
-    const active = document.activeElement;
-    const outside = !root.current.contains(active);
-    if (e.shiftKey && (active === first || outside)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && (active === last || outside)) {
-      e.preventDefault();
-      first.focus();
-    }
-  }
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = scrollLock;
+      previous?.focus();
+    };
+  }, []);
 
   const ready = !requireText || typed === requireText;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 px-4" onKeyDown={onKeyDown}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 px-4">
       <div
         ref={root}
         role="dialog"
@@ -80,8 +94,14 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
               type="text"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && ready) {
+                  e.preventDefault();
+                  onConfirm();
+                }
+              }}
               autoComplete="off"
-              className="h-11 w-full rounded-md border-2 border-rule bg-paper-2 px-3 text-15 focus:border-ink"
+              className="h-11 w-full rounded-md border-2 border-muted bg-paper-2 px-3 text-15 focus:border-ink"
             />
           </div>
         )}

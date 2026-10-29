@@ -57,7 +57,7 @@ export function Choice<T extends string>({
             ? "border-ink bg-ticket text-ink"
             : onDark
               ? "border-paper bg-transparent text-paper"
-              : "border-rule bg-paper-2 text-ink";
+              : "border-muted bg-paper-2 text-ink";
           return (
             <button
               key={o.value}

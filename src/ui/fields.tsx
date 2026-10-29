@@ -2,7 +2,7 @@ import { useId } from "react";
 import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
 
 const control =
-  "h-11 w-full rounded-md border-2 bg-paper-2 px-3 text-15 text-ink placeholder:text-faint focus:border-ink disabled:opacity-50";
+  "h-11 w-full rounded-md border-2 bg-paper-2 px-3 text-15 text-ink placeholder:text-muted focus:border-ink disabled:opacity-50";
 
 function Messages({ id, error, hint }: { id: string; error?: string; hint?: string }) {
   return (
@@ -13,7 +13,7 @@ function Messages({ id, error, hint }: { id: string; error?: string; hint?: stri
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="mt-1 text-13 font-bold text-ink">
+        <p id={`${id}-error`} role="alert" className="mt-1 text-13 font-bold text-ink">
           <span aria-hidden className="mr-1 inline-block size-2 rounded-sm bg-stamp-red" />
           {error}
         </p>
@@ -22,8 +22,8 @@ function Messages({ id, error, hint }: { id: string; error?: string; hint?: stri
   );
 }
 
-function describedBy(id: string, error?: string, hint?: string): string | undefined {
-  const ids = [error && `${id}-error`, hint && `${id}-hint`].filter(Boolean);
+function describedBy(id: string, error?: string, hint?: string, extra?: string): string | undefined {
+  const ids = [error && `${id}-error`, hint && `${id}-hint`, extra].filter(Boolean);
   return ids.length ? ids.join(" ") : undefined;
 }
 
@@ -33,7 +33,7 @@ export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: string;
 }
 
-export function TextField({ label, error, hint, id: idProp, className = "", ...rest }: TextFieldProps) {
+export function TextField({ label, error, hint, id: idProp, className = "", "aria-describedby": extraDesc, ...rest }: TextFieldProps) {
   const auto = useId();
   const id = idProp ?? auto;
   return (
@@ -44,8 +44,8 @@ export function TextField({ label, error, hint, id: idProp, className = "", ...r
       <input
         id={id}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(id, error, hint)}
-        className={`${control} ${error ? "border-stamp-red" : "border-rule"} ${className}`}
+        aria-describedby={describedBy(id, error, hint, extraDesc)}
+        className={`${control} ${error ? "border-stamp-red" : "border-muted"} ${className}`}
         {...rest}
       />
       <Messages id={id} error={error} hint={hint} />
@@ -60,7 +60,7 @@ export interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement
   options: { value: string; label: string; disabled?: boolean }[];
 }
 
-export function SelectField({ label, error, hint, options, id: idProp, className = "", ...rest }: SelectFieldProps) {
+export function SelectField({ label, error, hint, options, id: idProp, className = "", "aria-describedby": extraDesc, ...rest }: SelectFieldProps) {
   const auto = useId();
   const id = idProp ?? auto;
   return (
@@ -71,8 +71,8 @@ export function SelectField({ label, error, hint, options, id: idProp, className
       <select
         id={id}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(id, error, hint)}
-        className={`${control} ${error ? "border-stamp-red" : "border-rule"} ${className}`}
+        aria-describedby={describedBy(id, error, hint, extraDesc)}
+        className={`${control} ${error ? "border-stamp-red" : "border-muted"} ${className}`}
         {...rest}
       >
         {options.map((o) => (
