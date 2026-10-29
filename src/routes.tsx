@@ -1,4 +1,18 @@
 import type { RouteObject } from "react-router-dom";
+import { NotFound, PageFrame } from "./ui";
+import CheckPage from "./visitor/CheckPage";
+import LegacyRedirect from "./visitor/LegacyRedirect";
+import OrgPage from "./visitor/OrgPage";
+import ReservePage from "./visitor/ReservePage";
+import RootPage from "./visitor/RootPage";
+
+function NotFoundPage() {
+  return (
+    <PageFrame surface="ink" width="narrow">
+      <NotFound />
+    </PageFrame>
+  );
+}
 
 function Placeholder({ name }: { name: string }) {
   return <div data-testid="placeholder">{name}</div>;
@@ -6,19 +20,19 @@ function Placeholder({ name }: { name: string }) {
 
 // 정적 경로(manage, b, p, reserve, check)는 /:slug 보다 먼저 매칭된다 (react-router 는 구체성 순위로 고른다).
 export const routes: RouteObject[] = [
-  { path: "/", element: <Placeholder name="landing" /> },
+  { path: "/", element: <RootPage /> },
   { path: "/manage/*", element: <Placeholder name="manage" /> },
   { path: "/b/:token", element: <Placeholder name="booth-link" /> },
   { path: "/p/:token", element: <Placeholder name="program-link" /> },
   { path: "/p/:token/booths/:boothId", element: <Placeholder name="program-booth" /> },
-  { path: "/reserve/:boothId", element: <Placeholder name="reserve" /> },
-  { path: "/check/:boothId", element: <Placeholder name="check" /> },
-  { path: "/b", element: <Placeholder name="not-found" /> },
-  { path: "/p", element: <Placeholder name="not-found" /> },
-  { path: "/reserve", element: <Placeholder name="not-found" /> },
-  { path: "/check", element: <Placeholder name="not-found" /> },
-  { path: "/:slug", element: <Placeholder name="org" /> },
-  { path: "/:slug/reserve/:boothId", element: <Placeholder name="reserve" /> },
-  { path: "/:slug/check/:boothId", element: <Placeholder name="check" /> },
-  { path: "*", element: <Placeholder name="not-found" /> },
+  { path: "/reserve/:boothId", element: <LegacyRedirect to="reserve" /> },
+  { path: "/check/:boothId", element: <LegacyRedirect to="check" /> },
+  { path: "/b", element: <NotFoundPage /> },
+  { path: "/p", element: <NotFoundPage /> },
+  { path: "/reserve", element: <NotFoundPage /> },
+  { path: "/check", element: <NotFoundPage /> },
+  { path: "/:slug", element: <OrgPage /> },
+  { path: "/:slug/reserve/:boothId", element: <ReservePage /> },
+  { path: "/:slug/check/:boothId", element: <CheckPage /> },
+  { path: "*", element: <NotFoundPage /> },
 ];

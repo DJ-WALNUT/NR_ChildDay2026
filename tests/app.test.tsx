@@ -1,21 +1,21 @@
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { routes } from "../src/routes";
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(<RouterProvider router={router} />);
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
 }
 
 describe("routes", () => {
-  it("/ 는 랜딩 자리표시를 보여준다", () => {
+  it("/ 는 안내 화면을 보여준다", () => {
     renderAt("/");
-    expect(screen.getByTestId("placeholder")).toHaveTextContent("landing");
-  });
-
-  it("/nareum 은 기관 화면 자리표시를 보여준다", () => {
-    renderAt("/nareum");
-    expect(screen.getByTestId("placeholder")).toHaveTextContent("org");
+    expect(screen.getByText(/QR 코드나 기관에서 받은 주소/)).toBeInTheDocument();
   });
 
   it("/b/abc 는 /:slug 로 잡히지 않고 부스 링크로 간다", () => {
@@ -23,20 +23,20 @@ describe("routes", () => {
     expect(screen.getByTestId("placeholder")).toHaveTextContent("booth-link");
   });
 
-  it.each(["/manage", "/b", "/p", "/reserve", "/check"])("%s 는 기관(slug) 화면이 아니다", (path) => {
+  it.each(["/b", "/p", "/reserve", "/check", "/a/b/c/d"])("%s 는 찾을 수 없어요 화면", (path) => {
     renderAt(path);
-    expect(screen.getByTestId("placeholder")).not.toHaveTextContent(/^org$/);
+    expect(screen.getByText("찾을 수 없어요")).toBeInTheDocument();
+  });
+
+  it("/manage 는 기관(slug) 화면이 아니다", () => {
+    renderAt("/manage");
+    expect(screen.getByTestId("placeholder")).toHaveTextContent("manage");
   });
 
   it.each([
     ["/p/abc", "program-link"],
     ["/p/abc/booths/3", "program-booth"],
-    ["/reserve/3", "reserve"],
-    ["/check/3", "check"],
-    ["/nareum/reserve/3", "reserve"],
-    ["/nareum/check/3", "check"],
     ["/manage/booths", "manage"],
-    ["/a/b/c/d", "not-found"],
   ])("%s", (path, name) => {
     renderAt(path);
     expect(screen.getByTestId("placeholder")).toHaveTextContent(name);
