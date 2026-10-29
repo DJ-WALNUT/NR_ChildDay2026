@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { messageFor } from "../api/messages";
 import { cancel, getBoothPage, lookup, publicKeys } from "../api/public";
@@ -23,6 +23,8 @@ interface ReservedState {
 export default function CheckPage() {
   const { slug = "", boothId = "" } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const inFlight = useRef(false);
   const reserved = (location.state as ReservedState | null)?.reserved;
   const [identity, setIdentity] = useState<Identity | null>(() => {
     if (reserved) return { name: reserved.name, code: reserved.code };
@@ -47,6 +49,15 @@ export default function CheckPage() {
     enabled: identity !== null && !cancelled,
   });
 
+  const notFound = found.error instanceof ApiError && found.error.status === 404;
+  // 보관·이동 상태의 신청이 서버에 없으면 둘 다 비워 새로 고침해도 되살아나지 않게 한다.
+  useEffect(() => {
+    if (notFound) {
+      clearTicket(Number(boothId));
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [notFound, boothId, navigate, location.pathname]);
+
   if (booth.isError) return <QueryFailure error={booth.error} onRetry={() => void booth.refetch()} />;
   if (!booth.data) {
     return (
@@ -66,26 +77,29 @@ export default function CheckPage() {
   }
 
   async function doCancel() {
-    if (!identity) return;
+    if (!identity || inFlight.current) return;
+    inFlight.current = true;
     setCancelling(true);
     setCancelError(null);
     try {
       await cancel(boothId, identity);
       clearTicket(Number(boothId));
       setCancelled(true);
+      navigate(location.pathname, { replace: true, state: null });
     } catch (err) {
       setCancelError(err);
     }
     setConfirming(false);
     setCancelling(false);
+    inFlight.current = false;
   }
 
   function forget() {
     clearTicket(Number(boothId));
     setIdentity(null);
+    navigate(location.pathname, { replace: true, state: null });
   }
 
-  const notFound = found.error instanceof ApiError && found.error.status === 404;
   const showForm = !cancelled && (identity === null || notFound);
 
   return (
@@ -125,7 +139,7 @@ export default function CheckPage() {
       )}
       {showForm && (
         <form onSubmit={onForm} noValidate className="space-y-4 rounded-lg bg-paper p-4 text-ink">
-          <h2 className="text-18 font-extrabold">내 신청 확인</h2>
+          <h1 className="text-18 font-extrabold">내 신청 확인</h1>
           <TextField
             label="참가자 이름"
             value={name}
@@ -150,8 +164,9 @@ export default function CheckPage() {
         open={confirming}
         title="신청을 취소할까요?"
         body="취소하면 자리가 다른 분께 돌아가요."
-        confirmLabel={cancelling ? "취소하는 중" : "신청 취소하기"}
+        confirmLabel="신청 취소하기"
         danger
+        busy={cancelling}
         onConfirm={() => void doCancel()}
         onCancel={() => setConfirming(false)}
       />

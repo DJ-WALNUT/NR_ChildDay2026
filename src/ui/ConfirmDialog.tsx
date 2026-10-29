@@ -10,11 +10,13 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   requireText?: string;
+  /** 처리 중: 확인 버튼을 잠그고 스피너를 보여줘요. */
+  busy?: boolean;
 }
 
 const FOCUSABLE = "button:not([disabled]), input:not([disabled]), a[href], select:not([disabled]), textarea:not([disabled])";
 
-function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, requireText }: Omit<ConfirmDialogProps, "open">) {
+function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, requireText, busy = false }: Omit<ConfirmDialogProps, "open">) {
   const titleId = useId();
   const bodyId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -96,7 +98,7 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && ready && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                if (e.key === "Enter" && ready && !busy && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                   e.preventDefault();
                   onConfirm();
                 }
@@ -110,7 +112,7 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
           <Button ref={cancelBtn} variant="secondary" onClick={onCancel}>
             취소
           </Button>
-          <Button variant={danger ? "danger" : "primary"} disabled={!ready} onClick={onConfirm}>
+          <Button variant={danger ? "danger" : "primary"} loading={busy} disabled={!ready} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </div>

@@ -54,7 +54,7 @@ const boothPage = (over: Partial<PublicBoothPage> = {}): PublicBoothPage => ({
   ...over,
 });
 
-function renderAt(path: string) {
+function renderAt(path: string | { pathname: string; state: unknown }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   render(
@@ -155,6 +155,97 @@ describe("ReservePage", () => {
     expect(await screen.findByText("마감")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "신청하기" })).toBeNull();
   });
+
+  it("409 duplicate 는 내 신청 확인 링크를 보인다", async () => {
+    const user = userEvent.setup();
+    m.getBoothPage.mockResolvedValue(boothPage());
+    m.reserve.mockRejectedValue(new ApiError(409, "duplicate"));
+    renderAt("/nareum/reserve/12");
+    await fillAndSubmit(user);
+    expect(await screen.findByText(/이미 신청했어요/)).toBeInTheDocument();
+    const alert = screen.getAllByRole("alert").find((el) => el.textContent?.includes("이미 신청했어요"))!;
+    expect(within(alert).getByRole("link", { name: "내 신청 확인" })).toHaveAttribute("href", "/nareum/check/12");
+  });
+
+  it("422 fields 를 필드별로 보이고 첫 오류 칸에 포커스한다", async () => {
+    const user = userEvent.setup();
+    m.getBoothPage.mockResolvedValue(boothPage());
+    m.reserve.mockRejectedValue(new ApiError(422, "invalid", { name: "이름이 올바르지 않아요.", code: "번호가 올바르지 않아요." }));
+    renderAt("/nareum/reserve/12");
+    await fillAndSubmit(user);
+    expect(await screen.findByText("이름이 올바르지 않아요.")).toBeInTheDocument();
+    expect(screen.getByText("번호가 올바르지 않아요.")).toBeInTheDocument();
+    expect(screen.getByLabelText("참가자 이름")).toHaveFocus();
+  });
+
+  it("비어 있게 제출하면 첫 오류(시간 선택)에 포커스하고 요약을 한 번 알린다", async () => {
+    const user = userEvent.setup();
+    m.getBoothPage.mockResolvedValue(boothPage());
+    renderAt("/nareum/reserve/12");
+    await user.click(await screen.findByRole("button", { name: "신청하기" }));
+    expect(screen.getByRole("radio", { name: /11시 A타임/ })).toHaveFocus();
+    expect(screen.getByRole("radiogroup", { name: "시간 선택" })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText(/입력 내용을 확인해 주세요 \(\d곳\)/)).toBeInTheDocument();
+    expect(m.reserve).not.toHaveBeenCalled();
+  });
+
+  it("선착순 부스는 slot 없이 신청한다", async () => {
+    const user = userEvent.setup();
+    m.getBoothPage.mockResolvedValue(
+      boothPage({
+        booth: { id: 12, name: "페이스 페인팅", mode: "fcfs", use_waitlist: false, is_active: true },
+        availability: { remaining: 5, full: false, is_closed: false },
+      }),
+    );
+    m.reserve.mockResolvedValue({ id: 1, slot: "선착순", status: "normal" });
+    m.lookup.mockResolvedValue({ name: "홍길동", slot: "선착순", status: "normal", booth_name: "페이스 페인팅" });
+    renderAt("/nareum/reserve/12");
+    await user.click(await screen.findByRole("radio", { name: "남" }));
+    await user.selectOptions(screen.getByLabelText("연령대"), "9~13세");
+    await user.type(screen.getByLabelText("참가자 이름"), "홍길동");
+    await user.type(screen.getByLabelText("식별번호"), "1234");
+    await user.click(screen.getByRole("checkbox", { name: "위 체험부스를 신청합니다" }));
+    await user.click(screen.getByRole("button", { name: "신청하기" }));
+    await waitFor(() => expect(m.reserve).toHaveBeenCalled());
+    expect(m.reserve.mock.calls[0][1]).toEqual({ name: "홍길동", code: "1234", gender: "남", age_group: "9~13세" });
+    expect(await screen.findByText("선착순 입장")).toBeInTheDocument();
+  });
+
+  it("비활성 부스는 마감 입장권을 보인다", async () => {
+    m.getBoothPage.mockResolvedValue(
+      boothPage({ booth: { id: 12, name: "비누 만들기", mode: "time", use_waitlist: false, is_active: false } }),
+    );
+    renderAt("/nareum/reserve/12");
+    expect(await screen.findByText("지금은 신청을 받지 않아요.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "신청하기" })).toBeNull();
+  });
+
+  it("409 full 뒤 선택한 시간이 마감됐으면 선택을 비운다", async () => {
+    const user = userEvent.setup();
+    const after = boothPage({
+      availability: {
+        slots: [
+          { label: "11시 A타임", remaining: 0, full: true },
+          { label: "11시 B타임", remaining: 0, full: true },
+        ],
+        is_closed: false,
+      },
+    });
+    m.getBoothPage.mockResolvedValueOnce(boothPage()).mockResolvedValue(after);
+    m.reserve.mockRejectedValue(new ApiError(409, "full"));
+    renderAt("/nareum/reserve/12");
+    await fillAndSubmit(user);
+    await waitFor(() => expect(screen.getByRole("radio", { name: /11시 A타임/ })).toHaveAttribute("aria-checked", "false"));
+  });
+
+  it("서버 오류(5xx)에도 다시 시도를 보인다", async () => {
+    const user = userEvent.setup();
+    m.getBoothPage.mockResolvedValue(boothPage());
+    m.reserve.mockRejectedValue(new ApiError(500, "http_500"));
+    renderAt("/nareum/reserve/12");
+    await fillAndSubmit(user);
+    expect(await screen.findByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
 });
 
 describe("CheckPage", () => {
@@ -185,6 +276,45 @@ describe("CheckPage", () => {
     await user.click(screen.getByRole("button", { name: "내 신청 확인" }));
     expect(await screen.findByText("신청 내역을 찾을 수 없어요.")).toBeInTheDocument();
   });
+
+  it("이 기기에서 지우기는 보관과 이동 상태를 비우고 폼을 보인다", async () => {
+    const user = userEvent.setup();
+    saveTicket({ booth_id: 12, slug: "nareum", name: "홍길동", code: "1234" });
+    m.getBoothPage.mockResolvedValue(boothPage());
+    m.lookup.mockResolvedValue({ name: "홍길동", slot: "11시 A타임", status: "normal", booth_name: "비누 만들기" });
+    const router = renderAt({
+      pathname: "/nareum/check/12",
+      state: { reserved: { name: "홍길동", code: "1234", status: "normal" } },
+    });
+    await user.click(await screen.findByRole("button", { name: "이 기기에서 지우기" }));
+    expect(await screen.findByRole("button", { name: "내 신청 확인" })).toBeInTheDocument();
+    expect(loadTicket(12)).toBeNull();
+    expect(router.state.location.state).toBeNull();
+  });
+
+  it("조회가 404 면 보관과 이동 상태를 비운다", async () => {
+    saveTicket({ booth_id: 12, slug: "nareum", name: "홍길동", code: "1234" });
+    m.getBoothPage.mockResolvedValue(boothPage());
+    m.lookup.mockRejectedValue(new ApiError(404, "not_found"));
+    const router = renderAt({
+      pathname: "/nareum/check/12",
+      state: { reserved: { name: "홍길동", code: "1234", status: "normal" } },
+    });
+    expect(await screen.findByText("신청 내역을 찾을 수 없어요.")).toBeInTheDocument();
+    await waitFor(() => expect(loadTicket(12)).toBeNull());
+    await waitFor(() => expect(router.state.location.state).toBeNull());
+  });
+
+  it("대기 접수 직후에는 대기자 안내를 보인다", async () => {
+    m.getBoothPage.mockResolvedValue(boothPage());
+    m.lookup.mockResolvedValue({ name: "홍길동", slot: "11시 B타임", status: "waiting", booth_name: "비누 만들기" });
+    renderAt({
+      pathname: "/nareum/check/12",
+      state: { reserved: { name: "홍길동", code: "1234", status: "waiting" } },
+    });
+    expect(await screen.findByText(/대기자로 접수됐어요/)).toBeInTheDocument();
+    expect(screen.getByText("대기")).toBeInTheDocument();
+  });
 });
 
 describe("LegacyRedirect / RootPage", () => {
@@ -199,6 +329,17 @@ describe("LegacyRedirect / RootPage", () => {
     m.getBoothHome.mockRejectedValue(new ApiError(404, "not_found"));
     renderAt("/check/99");
     expect(await screen.findByText("부스를 찾을 수 없어요")).toBeInTheDocument();
+  });
+
+  it("404 가 아닌 실패는 다시 시도를 보이고 재시도하면 이동한다", async () => {
+    const user = userEvent.setup();
+    m.getBoothHome.mockRejectedValueOnce(new ApiError(0, "network")).mockResolvedValue({ slug: "gmyouth" });
+    m.getBoothPage.mockResolvedValue(boothPage());
+    const router = renderAt("/reserve/12");
+    expect(await screen.findByText(/연결이 불안정해요/)).toBeInTheDocument();
+    expect(screen.queryByText("부스를 찾을 수 없어요")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/gmyouth/reserve/12"));
   });
 
   it("/ 는 안내 문구", () => {

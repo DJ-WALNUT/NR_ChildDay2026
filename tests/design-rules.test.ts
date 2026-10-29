@@ -14,7 +14,7 @@ function walk(dir: string): string[] {
 const RULES: [string, RegExp][] = [
   ["raw color (hex/rgb/hsl)", /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/],
   ["large radius", /rounded(-[trblxyse]{1,2})?-(xl|2xl|3xl|4xl|\[)/],
-  ["emoji", /\p{Extended_Pictographic}/u],
+  ["emoji", /(?![©®™])\p{Extended_Pictographic}/u],
   ["blue family", /\b(blue|indigo|sky)-/],
   ["shadow/gradient", /(^|[\s"'`])shadow(-|\b)|bg-gradient|bg-linear-|\bfrom-|\bvia-/],
 ];
@@ -49,6 +49,8 @@ describe("design rules", () => {
     expect(RULES[1][1].test("rounded-[10px]")).toBe(true);
     expect(RULES[1][1].test("rounded-md")).toBe(false);
     expect(RULES[2][1].test("확인 ✅")).toBe(true);
+    expect(RULES[2][1].test("© 2026 기관")).toBe(false);
+    expect(RULES[2][1].test("🎉")).toBe(true);
     expect(RULES[3][1].test("bg-blue-500")).toBe(true);
     expect(RULES[4][1].test("shadow-md")).toBe(true);
     expect(RULES[4][1].test('className="p-2 shadow"')).toBe(true);

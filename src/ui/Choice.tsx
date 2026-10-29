@@ -14,14 +14,18 @@ export function Choice<T extends string>({
   options,
   onChange,
   onDark = false,
+  error,
 }: {
   label: string;
   value: T | null;
   options: ChoiceOption<T>[];
   onChange: (value: T) => void;
   onDark?: boolean;
+  /** 오류 문구. 라디오 묶음에 aria-invalid/aria-describedby 로 이어져요(읽어주기 알림은 화면이 한 곳에서 맡아요). */
+  error?: string;
 }) {
   const labelId = useId();
+  const errorId = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const enabled = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
   const selectedIdx = options.findIndex((o) => o.value === value && !o.disabled);
@@ -50,7 +54,13 @@ export function Choice<T extends string>({
       <span id={labelId} className="mb-1 block text-13 font-bold">
         {label}
       </span>
-      <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-2">
+      <div
+        role="radiogroup"
+        aria-labelledby={labelId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className="flex flex-wrap gap-2"
+      >
         {options.map((o, i) => {
           const checked = i === selectedIdx;
           const tone = checked
@@ -79,6 +89,11 @@ export function Choice<T extends string>({
           );
         })}
       </div>
+      {error && (
+        <p id={errorId} className="mt-1 text-13 font-bold">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

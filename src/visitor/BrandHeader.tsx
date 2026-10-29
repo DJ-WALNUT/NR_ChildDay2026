@@ -12,16 +12,31 @@ export function BrandHeader({
   orgLogoUrl,
   eventName,
   eventLogoUrl,
+  asTitle = false,
 }: {
   orgName: string;
   orgLogoUrl?: string | null;
   eventName?: string;
   eventLogoUrl?: string | null;
+  /** 기관 첫 화면에서는 기관 이름이 페이지 제목(h1) */
+  asTitle?: boolean;
 }) {
+  const org = orgLogoUrl ? (
+    <Logo url={orgLogoUrl} name={orgName} />
+  ) : (
+    <span className="text-18 font-extrabold break-words">{orgName}</span>
+  );
   return (
     <header className="mb-5">
       <div className="flex min-h-8 items-center gap-3">
-        {orgLogoUrl ? <Logo url={orgLogoUrl} name={orgName} /> : <span className="text-18 font-extrabold break-words">{orgName}</span>}
+        {asTitle ? (
+          <h1 className="m-0">
+            {org}
+            {orgLogoUrl && <span className="sr-only">{orgName}</span>}
+          </h1>
+        ) : (
+          org
+        )}
       </div>
       {eventName && (
         <div className="mt-3 flex items-center gap-3">
@@ -39,20 +54,22 @@ export function VisitorFrame({
   orgLogoUrl,
   eventName,
   eventLogoUrl,
+  asTitle,
   children,
 }: {
   orgName: string;
   orgLogoUrl?: string | null;
   eventName?: string;
   eventLogoUrl?: string | null;
+  asTitle?: boolean;
   children: ReactNode;
 }) {
   return (
     <PageFrame surface="ink" width="narrow">
-      <BrandHeader orgName={orgName} orgLogoUrl={orgLogoUrl} eventName={eventName} eventLogoUrl={eventLogoUrl} />
+      <BrandHeader orgName={orgName} orgLogoUrl={orgLogoUrl} eventName={eventName} eventLogoUrl={eventLogoUrl} asTitle={asTitle} />
       <main className="space-y-4">{children}</main>
       <footer className="mt-8 text-12 text-faint">
-        &copy; {new Date().getFullYear()} {orgName}
+        © {new Date().getFullYear()} {orgName}
       </footer>
     </PageFrame>
   );

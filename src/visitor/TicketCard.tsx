@@ -13,7 +13,7 @@ export function TicketHeader({ eventName, boothName }: { eventName: string; boot
   return (
     <>
       <p className="text-13 font-bold break-words">체험부스 입장권 · {eventName}</p>
-      <h2 className="mt-1 text-22 font-extrabold break-words tracking-[-0.03em]">{boothName}</h2>
+      <h1 className="mt-1 text-22 font-extrabold break-words tracking-[-0.03em]">{boothName}</h1>
     </>
   );
 }

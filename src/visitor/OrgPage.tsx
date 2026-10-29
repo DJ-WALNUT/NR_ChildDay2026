@@ -19,7 +19,7 @@ export default function OrgPage() {
   const { org, events } = q.data;
   const shown = events.filter((e) => e.booths.length > 0);
   return (
-    <VisitorFrame orgName={org.name} orgLogoUrl={org.logo_url}>
+    <VisitorFrame orgName={org.name} orgLogoUrl={org.logo_url} asTitle>
       {shown.length === 0 && <EmptyState title="지금 신청을 받는 부스가 없어요." />}
       {shown.map((ev) => (
         <section key={ev.id} aria-label={ev.name} className="space-y-2">
