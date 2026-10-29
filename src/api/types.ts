@@ -147,7 +147,7 @@ export interface ExportRow {
   age_group: string;
   code: string;
   status: ReservationStatus;
-  created_at: string;
+  created_at: number; // UNIX 초
 }
 export interface ExportData {
   booths: { booth_id: number; event_name: string; booth_name: string; rows: ExportRow[] }[];
