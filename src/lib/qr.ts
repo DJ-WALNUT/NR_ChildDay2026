@@ -20,7 +20,13 @@ export function qrLabelLayout(
 const SCALE = 4;
 
 export async function renderQrPng(value: string, title: string, subtitle: string): Promise<Blob> {
-  await document.fonts.ready;
+  if (document.fonts) {
+    await Promise.all([
+      document.fonts.load(`800 ${18 * SCALE}px Pretendard`),
+      document.fonts.load(`700 ${15 * SCALE}px Pretendard`),
+    ]);
+    await document.fonts.ready;
+  }
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;left:-10000px;top:0;";
   document.body.appendChild(host);

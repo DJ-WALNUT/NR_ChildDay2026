@@ -11,9 +11,12 @@ const HEADERS = ["시간", "이름", "성별", "연령", "식별번호", "상태
 
 /** 엑셀 시트 이름: 금지 문자 제거, 31자 이하, 비면 "시트", 중복이면 " (2)"… */
 export function sheetName(raw: string, taken: Set<string>): string {
-  let base = [...raw.replace(/[\\/?*[\]:]/g, "")].slice(0, 31).join("").trim();
+  const clean = (v: string) => v.trim().replace(/^'+|'+$/g, "").trim();
+  let base = clean([...clean(raw.replace(/[\\/?*[\]:]/g, ""))].slice(0, 31).join(""));
   if (!base) base = "시트";
-  const has = (n: string) => [...taken].some((t) => t.toLowerCase() === n.toLowerCase());
+  // "History"는 엑셀 예약 이름
+  const has = (n: string) =>
+    n.toLowerCase() === "history" || [...taken].some((t) => t.toLowerCase() === n.toLowerCase());
   let name = base;
   for (let i = 2; has(name); i++) {
     const suffix = ` (${i})`;
@@ -37,7 +40,7 @@ export async function buildRosterWorkbook(
 ): Promise<ArrayBuffer> {
   const { Workbook } = await import("exceljs");
   const wb = new Workbook();
-  const taken = new Set<string>();
+  const taken = new Set<string>(["합계"]); // 합계 시트 이름을 먼저 확보
   for (const b of data.booths) {
     const ws = wb.addWorksheet(sheetName(b.booth_name, taken));
     ws.addRow(HEADERS).font = { bold: true };
@@ -55,7 +58,7 @@ export async function buildRosterWorkbook(
     ws.columns = [14, 16, 6, 12, 10, 12, 18].map((width) => ({ width }));
     ws.getColumn(5).numFmt = "@";
   }
-  const ws = wb.addWorksheet(sheetName("합계", taken));
+  const ws = wb.addWorksheet("합계");
   ws.addRow([opts.mode === "strict" ? "엄격 합계(이름·성별·연령 같으면 1명)" : "단순 합계"]).font = { bold: true };
   ws.addRow(["연령대", "남", "여", "합계"]).font = { bold: true };
   for (const r of stats.rows) ws.addRow([r.age_group, r.male, r.female, r.total]);

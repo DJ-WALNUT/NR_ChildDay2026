@@ -52,7 +52,44 @@ describe("buildRosterWorkbook", () => {
   });
 });
 
+describe("추가 규칙", () => {
+  it("상태 번역, 합계 시트 행, 수식 문자열", async () => {
+    const d: ExportData = {
+      booths: [
+        {
+          booth_id: 1,
+          event_name: "행사",
+          booth_name: "합계",
+          rows: [
+            { slot: "10시", name: "=1+1", gender: "남", age_group: "4~8세", code: "0001", status: "waiting", created_at: 0 },
+            { slot: "10시", name: "다", gender: "여", age_group: "4~8세", code: "0002", status: "completed", created_at: 0 },
+          ],
+        },
+      ],
+    };
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await buildRosterWorkbook(d, stats, { mode: "simple" }));
+    expect(wb.worksheets.map((w) => w.name)).toEqual(["합계 (2)", "합계"]);
+    const ws = wb.worksheets[0];
+    expect(cells(ws, 2)[5]).toBe("대기");
+    expect(cells(ws, 3)[5]).toBe("체험완료");
+    const c = ws.getCell("B2");
+    expect(c.value).toBe("=1+1");
+    expect(c.type).toBe(ExcelJS.ValueType.String);
+    const t = wb.getWorksheet("합계")!;
+    expect(cells(t, 3)).toEqual(["9~13세", 1, 0, 1]);
+    expect(cells(t, 4)).toEqual(["4~8세", 0, 1, 1]);
+    expect(cells(t, 5)).toEqual(["전체 합계", 1, 1, 2]);
+  });
+});
+
 describe("sheetName", () => {
+  it("작은따옴표·History·합계 충돌", () => {
+    expect(sheetName("'부스'", new Set())).toBe("부스");
+    expect(sheetName("History", new Set())).toBe("History (2)");
+    expect(sheetName("history", new Set())).toBe("history (2)");
+    expect(sheetName("합계", new Set(["합계"]))).toBe("합계 (2)");
+  });
   it("금지 문자 제거", () => expect(sheetName("a/b:c", new Set())).toBe("abc"));
   it("31자로 자름", () => expect([...sheetName("가".repeat(40), new Set())]).toHaveLength(31));
   it("비면 시트", () => expect(sheetName("///", new Set())).toBe("시트"));
