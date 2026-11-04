@@ -1,6 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { NotFound, PageFrame } from "../ui";
 import { AdminLayout } from "./AdminLayout";
+import AccountPage from "./account/AccountPage";
+import MembersPage from "./account/MembersPage";
 import BoothPage from "./booth/BoothPage";
 import DashboardPage from "./DashboardPage";
 import EventPage from "./event/EventPage";
@@ -54,6 +56,28 @@ export default function ManageApp() {
               <AdminLayout>
                 <BoothPage />
               </AdminLayout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="account"
+          element={
+            <RequireAuth>
+              <AdminLayout>
+                <AccountPage />
+              </AdminLayout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="members"
+          element={
+            <RequireAuth>
+              <RequireOrg>
+                <AdminLayout>
+                  <MembersPage />
+                </AdminLayout>
+              </RequireOrg>
             </RequireAuth>
           }
         />
