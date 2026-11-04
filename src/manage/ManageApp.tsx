@@ -1,19 +1,12 @@
 import { Route, Routes } from "react-router-dom";
 import { NotFound, PageFrame } from "../ui";
+import { AdminLayout } from "./AdminLayout";
+import DashboardPage from "./DashboardPage";
+import EventPage from "./event/EventPage";
 import { AuthProvider } from "./auth/AuthProvider";
 import { RequireAuth, RequireOrg, RequireSuper } from "./auth/guards";
 import LoginPage from "./auth/LoginPage";
 import PasswordPage from "./auth/PasswordPage";
-
-function Placeholder({ name }: { name: string }) {
-  return (
-    <PageFrame surface="paper-2" width="wide">
-      <main>
-        <h1 className="text-22 font-extrabold tracking-[-0.03em]">{name}</h1>
-      </main>
-    </PageFrame>
-  );
-}
 
 // routes.tsx 의 "/manage/*" 아래에서 그려지므로 경로는 /manage 기준 상대 경로다.
 // 이후 태스크는 아래에 경로를 더한다. events/:id, booths/:id 는 RequireOrg 밖(슈퍼관리자도 연다),
@@ -36,8 +29,20 @@ export default function ManageApp() {
           element={
             <RequireAuth>
               <RequireOrg>
-                <Placeholder name="대시보드" />
+                <AdminLayout>
+                  <DashboardPage />
+                </AdminLayout>
               </RequireOrg>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="events/:eventId"
+          element={
+            <RequireAuth>
+              <AdminLayout>
+                <EventPage />
+              </AdminLayout>
             </RequireAuth>
           }
         />
@@ -46,7 +51,9 @@ export default function ManageApp() {
           element={
             <RequireAuth>
               <RequireSuper>
-                <Placeholder name="전체 관리" />
+                <AdminLayout>
+                  <h1 className="text-22 font-extrabold tracking-[-0.03em]">전체 관리</h1>
+                </AdminLayout>
               </RequireSuper>
             </RequireAuth>
           }

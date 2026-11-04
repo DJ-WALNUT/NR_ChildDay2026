@@ -203,13 +203,13 @@ describe("로그아웃과 세션 만료 시 캐시", () => {
 
   it("nr:unauthorized 이벤트가 오면 캐시를 비우고 next 를 붙여 로그인 화면으로 간다", async () => {
     vi.mocked(admin.getMe).mockResolvedValue(me());
-    const { queryClient, where } = renderAt("/manage");
+    const { queryClient, where } = renderAt("/manage/account");
     await screen.findByRole("main");
     queryClient.setQueryData(adminKeys.overview(1), { any: "thing" });
     act(() => {
       window.dispatchEvent(new Event("nr:unauthorized"));
     });
-    await waitFor(() => expect(where()).toBe(`/manage/login?next=${encodeURIComponent("/manage")}`));
+    await waitFor(() => expect(where()).toBe(`/manage/login?next=${encodeURIComponent("/manage/account")}`));
     expect(queryClient.getQueryCache().getAll()).toEqual([]);
   });
 });
