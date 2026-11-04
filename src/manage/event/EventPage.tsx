@@ -7,11 +7,14 @@ import { ApiError } from "../../api/client";
 import { messageFor } from "../../api/messages";
 import type { AdminEvent, SessionOrg } from "../../api/types";
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
-import { EmptyState, NotFound, Notice, Spinner, TabPanel, Tabs } from "../../ui";
+import { NotFound, Notice, Spinner, TabPanel, Tabs } from "../../ui";
 import { useAuth } from "../auth/AuthProvider";
 import { orgHomePath } from "../paths";
 import BoothsTab from "./BoothsTab";
+import LinksTab from "./LinksTab";
+import PartnersTab from "./PartnersTab";
 import SettingsTab from "./SettingsTab";
+import StatsTab from "./StatsTab";
 
 /** 탭 내용이 받는 값. org 는 getEvent 응답의 소유 기관이다(로그인 계정의 기관이 아니다). */
 export interface EventTabProps {
@@ -19,14 +22,11 @@ export interface EventTabProps {
   org: SessionOrg;
 }
 
-// 운영 단체·실적·링크·설정 탭은 이후 태스크가 채운다.
-const NotReady: ComponentType<EventTabProps> = () => <EmptyState title="준비 중이에요" />;
-
 const TABS: { id: string; label: string; Component: ComponentType<EventTabProps> }[] = [
   { id: "booths", label: "부스", Component: BoothsTab },
-  { id: "partners", label: "운영 단체", Component: NotReady },
-  { id: "stats", label: "실적", Component: NotReady },
-  { id: "links", label: "링크", Component: NotReady },
+  { id: "partners", label: "운영 단체", Component: PartnersTab },
+  { id: "stats", label: "실적", Component: StatsTab },
+  { id: "links", label: "링크", Component: LinksTab },
   { id: "settings", label: "설정", Component: SettingsTab },
 ];
 

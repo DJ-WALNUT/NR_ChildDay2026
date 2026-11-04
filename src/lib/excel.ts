@@ -74,15 +74,39 @@ export async function buildRosterWorkbook(
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
 }
 
-const stripName = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
+/** 파일 이름에 못 쓰는 문자를 뺀다. */
+export const safeFileName = (s: string) => s.replace(/[\\/:*?"<>|]/g, "").trim();
 
 export function rosterFileName(
   kind: "booth" | "partner" | "event",
   eventName: string,
   name?: string,
 ): string {
-  const ev = stripName(eventName);
+  const ev = safeFileName(eventName);
   if (kind === "event") return `[${ev}]_실적.xlsx`;
-  const n = stripName(name ?? "");
+  const n = safeFileName(name ?? "");
   return kind === "booth" ? `[${ev}]_${n}_명단.xlsx` : `[${ev}]_${n}_실적.xlsx`;
+}
+
+/** 행사 링크 모음. 주소는 모두 절대 주소여야 해요. */
+export interface LinkSheetInput {
+  eventName: string;
+  booths: { name: string; manage: string; reserve: string }[];
+  partners: { name: string; link: string }[];
+}
+
+export async function buildLinksWorkbook(input: LinkSheetInput): Promise<ArrayBuffer> {
+  const { Workbook } = await import("exceljs");
+  const wb = new Workbook();
+  const booths = wb.addWorksheet("부스 링크");
+  booths.addRow(["행사", "부스", "부스 관리 링크", "방문객 신청 링크"]).font = { bold: true };
+  for (const b of input.booths) booths.addRow([input.eventName, b.name, b.manage, b.reserve]);
+  booths.columns = [20, 24, 50, 50].map((width) => ({ width }));
+  if (input.partners.length > 0) {
+    const ws = wb.addWorksheet("운영 단체 링크");
+    ws.addRow(["행사", "운영 단체", "실적 링크"]).font = { bold: true };
+    for (const p of input.partners) ws.addRow([input.eventName, p.name, p.link]);
+    ws.columns = [20, 24, 50].map((width) => ({ width }));
+  }
+  return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
 }

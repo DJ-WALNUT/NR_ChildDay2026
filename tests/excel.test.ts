@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
-import { buildRosterWorkbook, formatKst, rosterFileName, sheetName } from "../src/lib/excel";
+import { buildLinksWorkbook, buildRosterWorkbook, formatKst, rosterFileName, safeFileName, sheetName } from "../src/lib/excel";
 import type { ExportData, Stats } from "../src/api/types";
 
 const data: ExportData = {
@@ -114,4 +114,31 @@ describe("rosterFileName / formatKst", () => {
     expect(rosterFileName("event", "어린이날")).toBe("[어린이날]_실적.xlsx");
   });
   it("KST", () => expect(formatKst(0)).toBe("1970-01-01 09:00"));
+});
+
+describe("링크 시트", () => {
+  const input = {
+    eventName: "가을 축제",
+    booths: [{ name: "페이스페인팅", manage: "https://x/b/m1", reserve: "https://x/nareum/reserve/1" }],
+    partners: [{ name: "청년부", link: "https://x/p/t1" }],
+  };
+  const open = async (i = input) => {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await buildLinksWorkbook(i));
+    return wb;
+  };
+  it("부스 링크·운영 단체 링크 시트", async () => {
+    const wb = await open();
+    expect(wb.worksheets.map((w) => w.name)).toEqual(["부스 링크", "운영 단체 링크"]);
+    expect(cells(wb.worksheets[0], 1)).toEqual(["행사", "부스", "부스 관리 링크", "방문객 신청 링크"]);
+    expect(cells(wb.worksheets[0], 2)).toEqual(["가을 축제", "페이스페인팅", "https://x/b/m1", "https://x/nareum/reserve/1"]);
+    expect(cells(wb.worksheets[1], 2)).toEqual(["가을 축제", "청년부", "https://x/p/t1"]);
+  });
+  it("운영 단체가 없으면 그 시트가 없다", async () => {
+    const wb = await open({ ...input, partners: [] });
+    expect(wb.worksheets.map((w) => w.name)).toEqual(["부스 링크"]);
+  });
+  it("safeFileName 은 금지 문자를 뺀다", () => {
+    expect(safeFileName(" a/b:c ")).toBe("abc");
+  });
 });
