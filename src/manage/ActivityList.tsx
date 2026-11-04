@@ -20,8 +20,8 @@ const KINDS = [
 
 const COLUMNS: Column<AuditItem>[] = [
   { key: "at", header: "시각", numeric: true, align: "left", render: (a) => formatKst(a.at) },
-  { key: "actor_label", header: "행위자", render: (a) => a.actor_label },
-  { key: "summary", header: "내용", render: (a) => <span className="whitespace-pre-wrap break-words">{a.summary}</span> },
+  { key: "actor_label", header: "행위자", wrap: true, render: (a) => a.actor_label },
+  { key: "summary", header: "내용", wrap: true, render: (a) => <span className="whitespace-pre-wrap break-words">{a.summary}</span> },
 ];
 
 /**

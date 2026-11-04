@@ -19,7 +19,7 @@ const MODE = { time: "시간대별", fcfs: "선착순" };
 
 const columns: Column<BulkRow>[] = [
   { key: "row", header: "행 번호", numeric: true, render: (r) => r.sheetRow },
-  { key: "name", header: "이름", render: (r) => <span className="font-bold">{r.body.name}</span> },
+  { key: "name", header: "이름", wrap: true, render: (r) => <span className="font-bold">{r.body.name}</span> },
   { key: "mode", header: "방식", render: (r) => (r.body.mode ? MODE[r.body.mode] : "기본값") },
 ];
 

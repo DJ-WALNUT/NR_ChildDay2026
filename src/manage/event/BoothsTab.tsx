@@ -91,7 +91,7 @@ export default function BoothsTab({ event, org }: EventTabProps) {
       ),
     },
     { key: "no", header: "번호", numeric: true, render: (b) => String(booths.indexOf(b) + 1).padStart(2, "0") },
-    { key: "name", header: "이름", render: (b) => <span className="font-bold">{b.name}</span> },
+    { key: "name", header: "이름", wrap: true, render: (b) => <span className="font-bold">{b.name}</span> },
     { key: "mode", header: "방식", render: (b) => MODE[b.mode] },
     { key: "count", header: "신청 수", numeric: true, render: (b) => b.count },
     { key: "status", header: "상태", render: (b) => <Stamp kind={b.is_active ? "live" : "closed"} /> },

@@ -76,8 +76,8 @@ export default function OrgsTab() {
   });
 
   const columns: Column<SuperOrg>[] = [
-    { key: "name", header: "이름", render: (o) => <span className="font-bold">{o.name}</span> },
-    { key: "slug", header: "주소", render: (o) => <span className="break-all">{o.slug}</span> },
+    { key: "name", header: "이름", wrap: true, render: (o) => <span className="font-bold">{o.name}</span> },
+    { key: "slug", header: "주소", wrap: true, render: (o) => <span className="break-all">{o.slug}</span> },
     { key: "status", header: "상태", render: (o) => (o.is_active ? "활성" : "비활성") },
     { key: "user_count", header: "계정", numeric: true, render: (o) => o.user_count },
     { key: "event_count", header: "행사", numeric: true, render: (o) => o.event_count },

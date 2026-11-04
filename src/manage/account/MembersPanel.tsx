@@ -82,8 +82,8 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
   }
 
   const columns: Column<Member>[] = [
-    { key: "username", header: "아이디", render: (m) => <span className="font-bold">{m.username}</span> },
-    { key: "display_name", header: "표시 이름", render: (m) => m.display_name },
+    { key: "username", header: "아이디", wrap: true, render: (m) => <span className="font-bold">{m.username}</span> },
+    { key: "display_name", header: "표시 이름", wrap: true, render: (m) => m.display_name },
     { key: "status", header: "상태", render: (m) => statusOf(m) },
     {
       key: "last_login_at",

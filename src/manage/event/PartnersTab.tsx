@@ -119,10 +119,10 @@ export default function PartnersTab({ event, org }: EventTabProps) {
     </Button>
   );
   const partnerColumns: Column<Partner>[] = [
-    { key: "name", header: "이름", render: (p) => <span className="font-bold">{p.name}</span> },
-    { key: "org", header: "연결 기관", render: (p) => p.linked_org?.name ?? "연결 안 함" },
+    { key: "name", header: "이름", wrap: true, render: (p) => <span className="font-bold">{p.name}</span> },
+    { key: "org", header: "연결 기관", wrap: true, render: (p) => p.linked_org?.name ?? "연결 안 함" },
     { key: "count", header: "부스", numeric: true, render: (p) => p.booth_count },
-    { key: "link", header: "실적 링크", render: (p) => <span className="text-13 break-all">{partnerLink(p)}</span> },
+    { key: "link", header: "실적 링크", wrap: true, render: (p) => <span className="text-13 break-all">{partnerLink(p)}</span> },
     {
       key: "actions",
       header: "관리",
@@ -137,7 +137,7 @@ export default function PartnersTab({ event, org }: EventTabProps) {
     },
   ];
   const boothColumns: Column<Booth>[] = [
-    { key: "name", header: "부스", render: (b) => <span className="font-bold">{b.name}</span> },
+    { key: "name", header: "부스", wrap: true, render: (b) => <span className="font-bold">{b.name}</span> },
     {
       key: "partner",
       header: "운영 단체",

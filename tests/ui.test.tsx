@@ -260,10 +260,29 @@ describe("DataTable", () => {
     );
     expect(screen.getByRole("table", { name: "부스 목록" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "부스 목록" })).toHaveAttribute("tabindex", "0");
+    // sr-only(absolute) 머리글이 스크롤 영역 밖으로 새지 않도록 영역이 기준점이어야 한다.
+    expect(screen.getByRole("region", { name: "부스 목록" })).toHaveClass("relative");
   });
   it("caption 이 없으면 region 을 만들지 않는다", () => {
     render(<DataTable columns={[{ key: "n", header: "이름" }]} rows={[{ n: "가" }]} rowKey={(r) => r.n} />);
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+  it("긴 값 칸(wrap)만 줄바꿈하고 나머지 칸과 머리글은 줄바꿈하지 않는다(좁은 화면에서 글자가 한 자씩 쪼개지지 않게)", () => {
+    render(
+      <DataTable
+        caption="목록"
+        columns={[
+          { key: "n", header: "이름", wrap: true },
+          { key: "m", header: "방식" },
+        ]}
+        rows={[{ n: "가나다", m: "선착순" }]}
+        rowKey={(r) => r.n}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "이름" })).toHaveClass("whitespace-nowrap");
+    expect(screen.getByRole("cell", { name: "가나다" })).not.toHaveClass("whitespace-nowrap");
+    expect(screen.getByRole("cell", { name: "가나다" })).toHaveClass("min-w-40 [overflow-wrap:anywhere]");
+    expect(screen.getByRole("cell", { name: "선착순" })).toHaveClass("whitespace-nowrap");
   });
   it("행을 렌더한다", () => {
     render(

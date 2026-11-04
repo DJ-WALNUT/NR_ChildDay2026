@@ -16,7 +16,7 @@ type Linked = Overview["linked"][number];
 const OWNED_COLUMNS: Column<Owned>[] = [
   {
     key: "event",
-    header: "행사",
+    header: "행사", wrap: true,
     render: (r) => (
       <Link to={`/manage/events/${r.event.id}`} className="inline-flex min-h-11 items-center font-bold underline">
         {r.event.name}
@@ -32,11 +32,11 @@ const OWNED_COLUMNS: Column<Owned>[] = [
 ];
 
 const LINKED_COLUMNS: Column<Linked>[] = [
-  { key: "event", header: "행사", render: (r) => r.event.name },
-  { key: "who", header: "주최 기관 · 운영 단체", render: (r) => `${r.host.name} · ${r.partner.name}` },
+  { key: "event", header: "행사", wrap: true, render: (r) => r.event.name },
+  { key: "who", header: "주최 기관 · 운영 단체", wrap: true, render: (r) => `${r.host.name} · ${r.partner.name}` },
   {
     key: "booths",
-    header: "부스",
+    header: "부스", wrap: true,
     render: (r) => (
       <ul>
         {r.booths.map((b) => (
