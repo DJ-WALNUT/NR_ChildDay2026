@@ -155,8 +155,9 @@ describe("ReservePage", () => {
     m.reserve.mockResolvedValue({ id: 1, slot: "11시 A타임", status: "normal" });
     renderAt("/nareum/reserve/12");
     await fillAndSubmit(user);
-    const h1 = await screen.findByRole("heading", { level: 1, name: "비누 만들기" });
-    await waitFor(() => expect(h1).toHaveFocus());
+    // 신청 화면의 제목도 부스 이름이라, 확인 화면으로 넘어간 뒤에 찾아야 사라질 제목을 잡지 않는다.
+    await screen.findByText("입장 시간");
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "비누 만들기" })).toHaveFocus());
   });
 
   it("제출을 연달아 보내도 신청은 한 번만 간다", async () => {
@@ -541,5 +542,62 @@ describe("LegacyRedirect / RootPage", () => {
     renderAt("/check/99");
     const main = await screen.findByRole("main");
     expect(within(main).getByRole("heading", { level: 1, name: "부스를 찾을 수 없어요" })).toBeInTheDocument();
+  });
+});
+
+describe("신청·확인 화면 사이 이동", () => {
+  it("신청 화면 맨 위에 내 신청 확인 버튼이 있다", async () => {
+    m.getBoothPage.mockResolvedValue(boothPage());
+    renderAt("/nareum/reserve/12");
+    const title = await screen.findByRole("heading", { level: 1 });
+    const link = screen.getByRole("link", { name: "내 신청 확인" });
+    expect(link).toHaveAttribute("href", "/nareum/check/12");
+    expect(link).toHaveClass("min-h-14", "bg-paper");
+    expect(link.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText(/이미 신청했나요/)).not.toBeInTheDocument();
+  });
+
+  it("확인 화면 맨 위에 신청페이지로 돌아가기 버튼이 있다", async () => {
+    m.getBoothPage.mockResolvedValue(boothPage());
+    renderAt("/nareum/check/12");
+    const form = await screen.findByLabelText("참가자 이름");
+    const back = screen.getByRole("link", { name: "신청페이지로 돌아가기" });
+    expect(back).toHaveAttribute("href", "/nareum/reserve/12");
+    expect(back.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe("시간 선택 시간표", () => {
+  const many = (n: number) =>
+    boothPage({
+      availability: {
+        is_closed: false,
+        slots: Array.from({ length: n }, (_, i) => ({
+          label: `${11 + Math.floor(i / 6)}시 ${"ABCDEF"[i % 6]}타임`,
+          remaining: 5,
+          full: false,
+        })),
+      },
+    });
+
+  it("시간별로 묶고 고른 시간을 글로 알려 준다", async () => {
+    const user = userEvent.setup();
+    m.getBoothPage.mockResolvedValue(many(36));
+    renderAt("/nareum/reserve/12");
+    const cell = await screen.findByRole("radio", { name: "13시 C타임 남은 5자리" });
+    expect(cell).toHaveTextContent("C5");
+    expect(screen.getAllByText("13시")).toHaveLength(1);
+    expect(screen.getByText("숫자는 남은 자리예요")).toBeInTheDocument();
+    await user.click(cell);
+    expect(screen.getByText("선택한 시간: 13시 C타임")).toBeInTheDocument();
+  });
+
+  it("타임이 없는 시간(시간당 1칸)은 기존처럼 이름을 그대로 보인다", async () => {
+    m.getBoothPage.mockResolvedValue(
+      boothPage({ availability: { is_closed: false, slots: [{ label: "11시", remaining: 5, full: false }] } }),
+    );
+    renderAt("/nareum/reserve/12");
+    expect(await screen.findByRole("radio", { name: /11시/ })).toHaveTextContent("남은 5자리");
+    expect(screen.queryByText("숫자는 남은 자리예요")).not.toBeInTheDocument();
   });
 });

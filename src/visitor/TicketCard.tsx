@@ -38,20 +38,31 @@ export function TicketCard({
   onForget?: () => void;
 }) {
   const cancelable = onCancel && (status === "normal" || status === "waiting");
+  // 체험을 마쳤거나 노쇼인 입장권은 이미 쓰인 표라 노랑을 뺀다.
+  const spent = status === "noshow" || status === "completed";
   return (
-    <Ticket header={<TicketHeader eventName={eventName} boothName={boothName} />}>
-      <dl className="space-y-2 text-15">
-        <div className="flex gap-3">
-          <dt className="w-20 shrink-0 text-13 font-bold text-muted">참가자</dt>
-          <dd className="min-w-0 break-words font-bold">{name}</dd>
+    <Ticket
+      tone={spent ? "muted" : "ticket"}
+      header={
+        <>
+          <TicketHeader eventName={eventName} boothName={boothName} />
+          <dl className="mt-4">
+            <dt className="text-13 font-bold">입장 시간</dt>
+            <dd className="mt-1 text-44 font-extrabold break-words tracking-[-0.03em]">
+              {slot === "선착순" ? "선착순 입장" : slot}
+            </dd>
+          </dl>
+        </>
+      }
+    >
+      <div className="flex items-start justify-between gap-3">
+        <dl className="min-w-0">
+          <dt className="text-13 font-bold text-muted">참가자</dt>
+          <dd className="mt-1 text-28 font-extrabold break-words tracking-[-0.03em]">{name}</dd>
+        </dl>
+        <div className="shrink-0 pt-4">
+          <Stamp kind={STAMP[status]} size="lg" />
         </div>
-        <div className="flex gap-3">
-          <dt className="w-20 shrink-0 text-13 font-bold text-muted">입장 시간</dt>
-          <dd className="min-w-0 font-bold tabular-nums">{slot === "선착순" ? "선착순 입장" : slot}</dd>
-        </div>
-      </dl>
-      <div className="mt-4 flex justify-end">
-        <Stamp kind={STAMP[status]} />
       </div>
       {notice && <p className="mt-3 text-13 break-words whitespace-pre-line text-muted">{notice}</p>}
       {(cancelable || onForget) && (

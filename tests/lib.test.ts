@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { normalizeCode, normalizeName } from "../src/lib/identity";
-import { availabilitySummary, compareSlots, slotHour } from "../src/lib/slots";
+import { availabilitySummary, compareSlots, slotHour, slotParts } from "../src/lib/slots";
 import { clearTicket, loadTicket, saveTicket } from "../src/lib/ticketStore";
 
 describe("normalizeCode", () => {
@@ -96,5 +96,14 @@ describe("ticketStore", () => {
     expect(loadTicket(3)).toBeNull();
     expect(() => saveTicket(tk)).not.toThrow();
     expect(() => clearTicket(3)).not.toThrow();
+  });
+});
+
+describe("slotParts", () => {
+  it("시간과 타임을 나눈다", () => {
+    expect(slotParts("11시 A타임")).toEqual({ hour: "11시", tab: "A" });
+  });
+  it.each(["11시", "선착순", "오전 A타임"])("%s 는 나누지 않는다", (label) => {
+    expect(slotParts(label)).toBeNull();
   });
 });

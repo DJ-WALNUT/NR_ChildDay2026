@@ -2,17 +2,19 @@ import { useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Search } from "lucide-react";
 import { ApiError } from "../api/client";
 import { fieldErrors, messageFor } from "../api/messages";
 import { getBoothPage, publicKeys, reserve } from "../api/public";
 import { isTimeAvailability } from "../api/types";
 import type { Gender } from "../api/types";
 import { normalizeCode, normalizeName } from "../lib/identity";
-import { compareSlots } from "../lib/slots";
+import { compareSlots, slotParts } from "../lib/slots";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { saveTicket } from "../lib/ticketStore";
 import { Button, Choice, Notice, PageFrame, SelectField, Spinner, Stamp, TextField, Ticket } from "../ui";
 import { QueryFailure, VisitorFrame } from "./BrandHeader";
+import { BigLink } from "./BigLink";
 import { TicketHeader } from "./TicketCard";
 
 const AGE_GROUPS = ["0~8세", "9~13세", "14~16세", "17~19세", "20~24세", "24세 이상"];
@@ -72,6 +74,10 @@ export default function ReservePage() {
 
   const frame = (children: ReactNode) => (
     <VisitorFrame orgName={org.name} orgLogoUrl={org.logo_url} eventName={event.name} eventLogoUrl={event.logo_url}>
+      <BigLink to={`/${slug}/check/${boothId}`} tone="solid">
+        <Search aria-hidden className="size-5" />
+        내 신청 확인
+      </BigLink>
       {children}
     </VisitorFrame>
   );
@@ -94,19 +100,24 @@ export default function ReservePage() {
   const slotOptions = isTime
     ? [...availability.slots]
         .sort((a, b) => compareSlots(a.label, b.label))
-        .map((s) => ({
-          value: s.label,
-          label: s.label,
-          hint: s.full
-            ? booth.use_waitlist
-              ? "대기"
-              : "마감"
-            : s.remaining === null
-              ? "자리 여유"
-              : `남은 ${s.remaining}자리`,
-          disabled: s.full && !booth.use_waitlist,
-        }))
+        .map((s) => {
+          const parts = slotParts(s.label);
+          const closedHint = booth.use_waitlist ? "대기" : "마감";
+          return {
+            value: s.label,
+            label: s.label,
+            hint: s.full ? closedHint : s.remaining === null ? "자리 여유" : `남은 ${s.remaining}자리`,
+            disabled: s.full && !booth.use_waitlist,
+            // 타임이 있는 부스는 시간별 줄로 묶어 칸을 짧게 보인다.
+            ...(parts && {
+              group: parts.hour,
+              short: parts.tab,
+              shortHint: s.full ? closedHint : s.remaining === null ? "여유" : String(s.remaining),
+            }),
+          };
+        })
     : [];
+  const timetable = slotOptions.some((o) => o.group !== undefined);
 
   async function submit() {
     const next: Errors = {};
@@ -182,7 +193,15 @@ export default function ReservePage() {
           {event.notice && <p className="text-13 break-words whitespace-pre-line text-muted">{event.notice}</p>}
           {isTime ? (
             <div data-field="slot">
-              <Choice label="시간 선택" value={slot} options={slotOptions} onChange={setSlot} error={errors.slot} />
+              <Choice
+                label="시간 선택"
+                note={timetable ? "숫자는 남은 자리예요" : undefined}
+                value={slot}
+                options={slotOptions}
+                onChange={setSlot}
+                error={errors.slot}
+              />
+              {timetable && slot && <p className="mt-2 text-15 font-bold">선택한 시간: {slot}</p>}
             </div>
           ) : (
             <>
@@ -275,11 +294,6 @@ export default function ReservePage() {
           <Button type="submit" size="lg" loading={busy} className="w-full">
             신청하기
           </Button>
-          <div className="text-center">
-            <Link to={`/${slug}/check/${boothId}`} className="text-13 underline">
-              이미 신청했나요? 내 신청 확인
-            </Link>
-          </div>
         </div>
       </Ticket>
     </form>,

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { ApiError } from "../api/client";
 import { messageFor } from "../api/messages";
 import { cancel, getBoothPage, lookup, publicKeys } from "../api/public";
@@ -11,6 +12,7 @@ import { clearTicket, loadTicket } from "../lib/ticketStore";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { Button, ConfirmDialog, Notice, PageFrame, Spinner, TextField } from "../ui";
 import { QueryFailure, VisitorFrame } from "./BrandHeader";
+import { BigLink } from "./BigLink";
 import { TicketCard } from "./TicketCard";
 
 interface Identity {
@@ -144,6 +146,10 @@ export default function CheckPage() {
 
   return (
     <VisitorFrame orgName={org.name} orgLogoUrl={org.logo_url} eventName={event.name} eventLogoUrl={event.logo_url}>
+      <BigLink to={`/${slug}/reserve/${boothId}`} tone="outline">
+        <ArrowLeft aria-hidden className="size-5" />
+        신청페이지로 돌아가기
+      </BigLink>
       {cancelled && (
         <>
           <Notice tone="info">신청을 취소했어요.</Notice>

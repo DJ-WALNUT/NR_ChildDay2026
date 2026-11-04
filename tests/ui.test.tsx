@@ -512,3 +512,32 @@ describe("TextAreaField", () => {
     expect(box.getAttribute("aria-describedby")).toContain("-hint");
   });
 });
+
+describe("Choice 묶음", () => {
+  const options = [
+    { value: "a1", label: "11시 A타임", hint: "남은 5자리", group: "11시", short: "A", shortHint: "5" },
+    { value: "b1", label: "11시 B타임", hint: "마감", group: "11시", short: "B", shortHint: "마감", disabled: true },
+    { value: "a2", label: "12시 A타임", hint: "남은 3자리", group: "12시", short: "A", shortHint: "3" },
+  ];
+  function Grouped() {
+    const [v, setV] = useState<string | null>(null);
+    return <Choice label="시간 선택" value={v} options={options} onChange={setV} />;
+  }
+
+  it("묶음 이름을 한 번만 보이고 칸은 짧게, 읽을 때는 전체 이름으로 읽는다", () => {
+    render(<Grouped />);
+    expect(screen.getAllByText("11시")).toHaveLength(1);
+    const cell = screen.getByRole("radio", { name: "11시 A타임 남은 5자리" });
+    expect(cell).toHaveTextContent("A5");
+  });
+
+  it("화살표는 묶음을 넘어 다음 칸으로 가고 잠긴 칸은 건너뛴다", async () => {
+    const user = userEvent.setup();
+    render(<Grouped />);
+    screen.getByRole("radio", { name: /11시 A타임/ }).focus();
+    await user.keyboard("{ArrowRight}");
+    const next = screen.getByRole("radio", { name: /12시 A타임/ });
+    expect(next).toHaveFocus();
+    expect(next).toHaveAttribute("aria-checked", "true");
+  });
+});

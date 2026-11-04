@@ -6,6 +6,12 @@ export function slotHour(label: string): number {
   return m ? parseInt(m[1], 10) : -1;
 }
 
+/** "11시 A타임"을 시간과 타임으로 나눈다. 타임이 없는 라벨은 null. */
+export function slotParts(label: string): { hour: string; tab: string } | null {
+  const m = /^(\d+시) (\S+)타임$/.exec(label);
+  return m ? { hour: m[1], tab: m[2] } : null;
+}
+
 /** 코드포인트 순 비교(Python 문자열 비교와 동일). */
 function cmpStr(a: string, b: string): number {
   const x = [...a];

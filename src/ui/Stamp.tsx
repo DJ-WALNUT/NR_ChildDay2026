@@ -21,11 +21,24 @@ const LOOK: Record<StampKind, string> = {
 };
 
 // onDark: 잉크 바탕 위에서는 종이 판 위에 찍어 대비를 종이 기준으로 유지한다.
-export function Stamp({ kind, children, onDark = false }: { kind: StampKind; children?: ReactNode; onDark?: boolean }) {
+export function Stamp({
+  kind,
+  children,
+  onDark = false,
+  size = "md",
+}: {
+  kind: StampKind;
+  children?: ReactNode;
+  onDark?: boolean;
+  /** lg: 입장권에 찍는 큰 도장. 나타날 때 한 번 찍히는 동작이 있다. */
+  size?: "md" | "lg";
+}) {
   let look = LOOK[kind];
   if (onDark) look = kind === "live" ? "border-2 border-ticket bg-ticket text-ink" : `${look} bg-paper`;
   return (
-    <span className={`inline-block whitespace-nowrap rounded-sm px-2 py-0.5 text-13 font-extrabold ${look}`}>
+    <span
+      className={`inline-block whitespace-nowrap rounded-sm font-extrabold ${size === "lg" ? "px-3 py-1 text-18 motion-safe:animate-stamp-press" : "px-2 py-0.5 text-13"} ${look}`}
+    >
       {children ?? TEXT[kind]}
     </span>
   );
