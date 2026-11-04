@@ -193,6 +193,18 @@ describe("StatsPanel", () => {
     expect(screen.getByText("이름·성별·연령이 같으면 1명으로 세요.")).toBeInTheDocument();
   });
 
+  it("부스 이름은 flex 줄 안에서 줄어들 수 있는 칸에 담긴다(공백 없는 긴 이름이 가로 스크롤을 만들지 않게)", async () => {
+    const long = "가나다라마바사아자차카타파하".repeat(3);
+    vi.mocked(link.getPartner).mockResolvedValue(payload([mk(12, long), mk(13, "팽이 돌리기")]));
+    renderAt("/p/tok");
+    const group = await screen.findByRole("group", { name: "합계에 포함할 부스" }, T);
+    const name = within(group).getByText(long);
+    expect(name.tagName).toBe("SPAN");
+    expect(name).toHaveClass("min-w-0", "break-words");
+    // fieldset 은 기본 min-width 가 내용 너비라 min-w-0 이 없으면 줄어들지 못한다.
+    expect(group).toHaveClass("min-w-0");
+  });
+
   it("부스 번호는 순서대로 두 자리", async () => {
     vi.mocked(link.getPartner).mockResolvedValue(data);
     renderAt("/p/tok");

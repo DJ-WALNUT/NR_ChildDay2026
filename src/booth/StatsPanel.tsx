@@ -97,7 +97,7 @@ export function StatsPanel({
 
   return (
     <section aria-label="실적" className="space-y-4">
-      <fieldset className="space-y-1">
+      <fieldset className="min-w-0 space-y-1">
         <legend className="text-15 font-extrabold">합계에 포함할 부스</legend>
         <div className="flex flex-wrap gap-2 py-1">
           <Button variant="secondary" onClick={() => setSelected(new Set(booths.map((b) => b.id)))}>
@@ -108,9 +108,9 @@ export function StatsPanel({
           </Button>
         </div>
         {booths.map((b) => (
-          <label key={b.id} className="flex min-h-11 items-center gap-3 text-15 font-bold break-words">
+          <label key={b.id} className="flex min-h-11 items-center gap-3 text-15 font-bold">
             <input type="checkbox" className="size-5 shrink-0 accent-ink" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
-            {b.name}
+            <span className="min-w-0 break-words">{b.name}</span>
           </label>
         ))}
       </fieldset>
