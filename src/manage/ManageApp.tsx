@@ -4,8 +4,10 @@ import { AdminLayout } from "./AdminLayout";
 import AccountPage from "./account/AccountPage";
 import MembersPage from "./account/MembersPage";
 import BoothPage from "./booth/BoothPage";
+import ActivityPage from "./ActivityPage";
 import DashboardPage from "./DashboardPage";
 import EventPage from "./event/EventPage";
+import OrgPage from "./OrgPage";
 import { AuthProvider } from "./auth/AuthProvider";
 import { RequireAuth, RequireOrg, RequireSuper } from "./auth/guards";
 import LoginPage from "./auth/LoginPage";
@@ -76,6 +78,30 @@ export default function ManageApp() {
               <RequireOrg>
                 <AdminLayout>
                   <MembersPage />
+                </AdminLayout>
+              </RequireOrg>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="activity"
+          element={
+            <RequireAuth>
+              <RequireOrg>
+                <AdminLayout>
+                  <ActivityPage />
+                </AdminLayout>
+              </RequireOrg>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="org"
+          element={
+            <RequireAuth>
+              <RequireOrg>
+                <AdminLayout>
+                  <OrgPage />
                 </AdminLayout>
               </RequireOrg>
             </RequireAuth>
