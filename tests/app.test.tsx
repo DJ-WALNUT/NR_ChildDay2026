@@ -14,6 +14,16 @@ vi.mock("../src/api/link", async (orig) => ({
 }));
 import * as link from "../src/api/link";
 
+vi.mock("../src/api/admin", async (orig) => ({
+  ...(await orig<typeof import("../src/api/admin")>()),
+  getMe: vi.fn(),
+}));
+import * as admin from "../src/api/admin";
+
+beforeEach(() => {
+  vi.mocked(admin.getMe).mockRejectedValue(new ApiError(401, "unauthorized"));
+});
+
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   render(
@@ -59,15 +69,13 @@ describe("routes", () => {
     expect(screen.getByText("찾을 수 없어요")).toBeInTheDocument();
   });
 
-  it("/manage 는 기관(slug) 화면이 아니다", () => {
+  it("/manage 는 기관(slug) 화면이 아니고 로그인 화면으로 간다", async () => {
     renderAt("/manage");
-    expect(screen.getByTestId("placeholder")).toHaveTextContent("manage");
+    expect(await screen.findByRole("heading", { name: "로그인" }, { timeout: 3000 })).toBeInTheDocument();
   });
 
-  it.each([
-    ["/manage/booths", "manage"],
-  ])("%s", (path, name) => {
-    renderAt(path);
-    expect(screen.getByTestId("placeholder")).toHaveTextContent(name);
+  it("/manage 아래 알 수 없는 주소도 로그인 전에는 로그인 화면으로 간다", async () => {
+    renderAt("/manage/booths");
+    expect(await screen.findByRole("heading", { name: "로그인" }, { timeout: 3000 })).toBeInTheDocument();
   });
 });

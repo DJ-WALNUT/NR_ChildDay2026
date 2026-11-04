@@ -24,14 +24,15 @@ function StaffFallback() {
   );
 }
 
-function Placeholder({ name }: { name: string }) {
-  return <div data-testid="placeholder">{name}</div>;
-}
-
 // 정적 경로(manage, b, p, reserve, check)는 /:slug 보다 먼저 매칭된다 (react-router 는 구체성 순위로 고른다).
 export const routes: RouteObject[] = [
   { path: "/", element: <RootPage /> },
-  { path: "/manage/*", element: <Placeholder name="manage" /> },
+  {
+    path: "/manage/*",
+    HydrateFallback: StaffFallback,
+    // 관리자 화면은 방문객 첫 묶음에 들어가지 않도록 따로 불러온다.
+    lazy: async () => ({ Component: (await import("./manage/ManageApp")).default }),
+  },
   {
     path: "/b/:token",
     HydrateFallback: StaffFallback,
