@@ -94,7 +94,11 @@ export default function BulkImport({ event, onClose }: { event: AdminEvent; onCl
         </p>
         <Button
           variant="secondary"
-          onClick={() => void buildBulkTemplate().then((buf) => downloadBlob(buf, BULK_FILE_NAME, XLSX))}
+          onClick={() =>
+            void buildBulkTemplate()
+              .then((buf) => downloadBlob(buf, BULK_FILE_NAME, XLSX))
+              .catch(() => setError("양식을 만들지 못했어요. 다시 시도해 주세요."))
+          }
         >
           양식 내려받기
         </Button>

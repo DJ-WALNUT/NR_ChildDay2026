@@ -58,12 +58,13 @@ const eul = (label: string) => {
   return code >= 0 && code <= 11171 && code % 28 !== 0 ? "을" : "를";
 };
 
-/** 정수로 읽는다. 숫자, "10", "10:00", "10시", 시간 형식 날짜를 받는다. 못 읽으면 undefined. */
-function toInt(v: string | number | Date): number | undefined {
-  if (v instanceof Date) return v.getUTCHours();
-  if (typeof v === "number") return Number.isInteger(v) ? v : undefined;
-  const m = /^(\d{1,3})(?::\d{2}(?::\d{2})?|\s*시)?$/.exec(v);
-  return m ? Number(m[1]) : undefined;
+/** 0 이상의 정수로 읽는다. 못 읽으면 undefined. 시각 칸(hour)만 "10:00", "10시", 시간 형식 날짜도 받고, 분이 0이 아니면 못 읽은 것으로 본다. */
+function toInt(v: string | number | Date, hour: boolean): number | undefined {
+  if (v instanceof Date) return hour && v.getUTCMinutes() === 0 ? v.getUTCHours() : undefined;
+  if (typeof v === "number") return Number.isInteger(v) && v >= 0 ? v : undefined;
+  if (/^\d+$/.test(v)) return Number(v);
+  const m = hour ? /^(\d{1,2})(?::(\d{2})(?::\d{2})?|\s*시)$/.exec(v) : null;
+  return m && (m[2] === undefined || Number(m[2]) === 0) ? Number(m[1]) : undefined;
 }
 
 const MODES: Record<string, BoothSettings["mode"]> = { 타임별: "time", 선착순: "fcfs" };
@@ -123,7 +124,7 @@ export async function parseBulkWorkbook(data: ArrayBuffer): Promise<ParseResult>
     for (const [label, key] of NUMBER_FIELDS) {
       const v = raw[label];
       if (v == null) continue;
-      const num = toInt(v);
+      const num = toInt(v, label === "시작시각" || label === "종료시각");
       if (num === undefined) bad(`${label}${eul(label)} 숫자로 입력해 주세요.`);
       else body[key] = num;
     }

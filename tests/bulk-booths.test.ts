@@ -147,3 +147,42 @@ describe("bulkErrors", () => {
     expect(bulkErrors(new Error("x"), rows)).toBeNull();
   });
 });
+
+describe("parseBulkWorkbook 숫자 검증", () => {
+  const first = async (row: Cell[]) => (await parseBulkWorkbook(await sheet([row]))).problems;
+  const time = new Date(Date.UTC(1899, 11, 30, 10, 0));
+
+  it.each([
+    ["선착순 인원", 2, -1],
+    ["선착순 인원", 2, 2.5],
+    ["선착순 인원", 2, "2.5"],
+    ["시작시각", 3, -1],
+    ["종료시각", 4, "-3"],
+    ["시간당 타임수", 5, 2.5],
+    ["타임당 인원", 6, -1],
+  ])("%s 에 %s 번째 칸 값 %s 는 문제", async (label, idx, value) => {
+    const row: Cell[] = ["가", null, null, null, null, null, null];
+    row[idx] = value;
+    const p = await first(row);
+    expect(p).toHaveLength(1);
+    expect(p[0].sheetRow).toBe(2);
+    expect(p[0].message).toContain(label);
+  });
+
+  it("시각이 아닌 칸에서는 HH:MM, N시, 날짜 셀을 받지 않는다", async () => {
+    for (const v of ["10:30", "10시", time] as Cell[]) {
+      expect((await first(["가", null, v])).length).toBe(1);
+      expect((await first(["가", null, null, null, null, null, v])).length).toBe(1);
+    }
+  });
+
+  it("시각 칸에서 0이 아닌 분은 문제", async () => {
+    for (const col of [3, 4]) {
+      const row: Cell[] = ["가", null, null, null, null];
+      row[col] = "10:30";
+      expect((await first(row)).length).toBe(1);
+      row[col] = new Date(Date.UTC(1899, 11, 30, 10, 30));
+      expect((await first(row)).length).toBe(1);
+    }
+  });
+});
