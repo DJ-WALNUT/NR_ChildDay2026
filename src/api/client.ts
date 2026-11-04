@@ -37,6 +37,23 @@ function raisesUnauthorized(path: string): boolean {
   return !QUIET_401.includes(path.split("?")[0]);
 }
 
+/** 실패 응답을 ApiError 로 만든다(401 이면 전역 이벤트도 일으킨다). api()와 apiBlob()이 함께 쓴다. */
+async function failure(res: Response, path: string): Promise<ApiError> {
+  let code = `http_${res.status}`;
+  let fields: Record<string, string> = {};
+  if ((res.headers.get("content-type") ?? "").includes("application/json")) {
+    try {
+      const data = (await res.json()) as { error?: unknown; fields?: unknown };
+      if (typeof data.error === "string") code = data.error;
+      if (data.fields && typeof data.fields === "object") fields = data.fields as Record<string, string>;
+    } catch {
+      /* 본문이 깨졌으면 http_<status> 유지 */
+    }
+  }
+  if (res.status === 401 && raisesUnauthorized(path)) window.dispatchEvent(new Event("nr:unauthorized"));
+  return new ApiError(res.status, code, fields);
+}
+
 export async function api<T = unknown>(
   method: Method,
   path: string,
@@ -74,17 +91,17 @@ export async function api<T = unknown>(
     }
   }
 
-  let code = `http_${res.status}`;
-  let fields: Record<string, string> = {};
-  if ((res.headers.get("content-type") ?? "").includes("application/json")) {
-    try {
-      const data = (await res.json()) as { error?: unknown; fields?: unknown };
-      if (typeof data.error === "string") code = data.error;
-      if (data.fields && typeof data.fields === "object") fields = data.fields as Record<string, string>;
-    } catch {
-      /* 본문이 깨졌으면 http_<status> 유지 */
-    }
+  throw await failure(res, path);
+}
+
+/** JSON 이 아닌 본문(백업 파일 등)을 Blob 으로 받는다. 오류 처리는 api()와 같다. */
+export async function apiBlob(path: string): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(path), { method: "GET", credentials: "include" });
+  } catch {
+    throw new ApiError(0, "network");
   }
-  if (res.status === 401 && raisesUnauthorized(path)) window.dispatchEvent(new Event("nr:unauthorized"));
-  throw new ApiError(res.status, code, fields);
+  if (res.ok) return res.blob();
+  throw await failure(res, path);
 }

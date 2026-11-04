@@ -174,3 +174,88 @@ export interface SetStatusResult {
   reservation: Reservation;
   over_capacity?: true;
 }
+
+// ---- 관리 API (/api/admin, 스펙 7.2·7.3·7.5) ----
+
+export interface SessionUser {
+  id: number;
+  username: string;
+  display_name: string;
+  org_id: number | null;
+  is_superadmin: boolean;
+  must_change_password: boolean;
+}
+export interface SessionOrg {
+  id: number;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+}
+/** GET /api/admin/auth/me. 슈퍼관리자는 org 가 null. */
+export interface MeResponse {
+  user: SessionUser;
+  csrf: string;
+  org: SessionOrg | null;
+}
+export interface Member {
+  id: number;
+  username: string;
+  display_name: string;
+  is_active: boolean;
+  must_change_password: boolean;
+  last_login_at: number | null; // UNIX 초
+  created_at: number;
+}
+export interface AdminEvent {
+  id: number;
+  name: string;
+  created_at: number;
+  booth_count: number;
+  partner_count: number;
+  logo_url: string | null;
+  notice: string | null;
+}
+export interface Partner {
+  id: number;
+  name: string;
+  linked_org: { id: number; name: string } | null;
+  access_token: string;
+  booth_count: number;
+}
+export interface Overview {
+  org: { id: number; name: string; slug: string };
+  owned: { event: { id: number; name: string }; booths: Booth[] }[];
+  linked: {
+    partner: { id: number; name: string };
+    event: { id: number; name: string };
+    host: { id: number; name: string };
+    booths: Booth[];
+  }[];
+  totals: { today: number; total: number; active_booths: number; booths: number };
+}
+export interface AuditItem {
+  id: number;
+  org_id: number | null;
+  actor_org_id: number | null;
+  user_id: number | null;
+  actor: string;
+  actor_label: string;
+  action: string;
+  target: string | null;
+  summary: string;
+  detail: unknown;
+  at: number; // UNIX 초
+}
+export interface AuditPage {
+  items: AuditItem[];
+  next_before: number | null;
+}
+export interface SuperOrg {
+  id: number;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  created_at: number;
+  user_count: number;
+  event_count: number;
+}

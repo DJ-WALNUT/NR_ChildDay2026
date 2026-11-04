@@ -16,6 +16,8 @@ const MESSAGES: Record<string, string> = {
   forbidden: "이 작업을 할 권한이 없어요.",
   csrf: "화면이 오래되었어요. 새로고침한 뒤 다시 시도해 주세요.",
   file_too_large: "파일이 너무 커요.",
+  http_413: "파일이 너무 커요.",
+  method_not_allowed: "지원하지 않는 요청이에요.",
   password_change_required: "먼저 비밀번호를 바꿔 주세요.",
   invalid_credentials: "아이디 또는 비밀번호가 맞지 않아요.",
   username_taken: "이미 사용 중인 아이디예요.",
