@@ -73,6 +73,11 @@ beforeEach(() => {
   vi.mocked(link.partnerExport).mockResolvedValue(exported);
 });
 
+async function openPicker() {
+  await userEvent.click(await screen.findByRole("button", { name: /합계에 포함할 부스/ }, T));
+  return screen.getByRole("group", { name: "합계에 포함할 부스" });
+}
+
 describe("PartnerPage", () => {
   const booths = [mk(12, "비누 만들기"), mk(13, "팽이 돌리기", { is_active: false, count: 9 })];
 
@@ -96,7 +101,7 @@ describe("PartnerPage", () => {
     vi.mocked(link.getPartner).mockResolvedValue(payload(booths));
     renderAt("/p/tok");
     await waitFor(() => expect(link.partnerStats).toHaveBeenCalledWith("tok", { booth_ids: [12, 13], mode: "simple" }));
-    await user.click(await screen.findByRole("tab", { name: /엄격/ }));
+    await user.click(await screen.findByRole("radio", { name: /엄격/ }));
     await waitFor(() => expect(link.partnerStats).toHaveBeenCalledWith("tok", { booth_ids: [12, 13], mode: "strict" }));
   });
 
@@ -104,7 +109,7 @@ describe("PartnerPage", () => {
     const user = userEvent.setup();
     vi.mocked(link.getPartner).mockResolvedValue(payload(booths));
     renderAt("/p/tok");
-    const group = await screen.findByRole("group", { name: "합계에 포함할 부스" }, T);
+    const group = await openPicker();
     await user.click(within(group).getByRole("checkbox", { name: "팽이 돌리기" }));
     await waitFor(() => expect(link.partnerStats).toHaveBeenLastCalledWith("tok", { booth_ids: [12], mode: "simple" }));
   });
@@ -113,6 +118,7 @@ describe("PartnerPage", () => {
     const user = userEvent.setup();
     vi.mocked(link.getPartner).mockResolvedValue(payload(booths));
     renderAt("/p/tok");
+    await openPicker();
     await user.click(await screen.findByRole("button", { name: "전체 해제" }, T));
     expect(screen.getByText("부스를 하나 이상 골라 주세요.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /통합 엑셀/ })).toBeDisabled();
@@ -189,7 +195,7 @@ describe("StatsPanel", () => {
     vi.mocked(link.getPartner).mockResolvedValue(data);
     renderAt("/p/tok");
     expect(await screen.findByText("신청 건수를 그대로 더해요.", {}, T)).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /엄격/ }));
+    await user.click(screen.getByRole("radio", { name: /엄격/ }));
     expect(screen.getByText("이름·성별·연령이 같으면 1명으로 세요.")).toBeInTheDocument();
   });
 
@@ -197,7 +203,7 @@ describe("StatsPanel", () => {
     const long = "가나다라마바사아자차카타파하".repeat(3);
     vi.mocked(link.getPartner).mockResolvedValue(payload([mk(12, long), mk(13, "팽이 돌리기")]));
     renderAt("/p/tok");
-    const group = await screen.findByRole("group", { name: "합계에 포함할 부스" }, T);
+    const group = await openPicker();
     const name = within(group).getByText(long);
     expect(name.tagName).toBe("SPAN");
     expect(name).toHaveClass("min-w-0", "break-words");
@@ -221,14 +227,14 @@ describe("StatsPanel", () => {
       .mockImplementationOnce(() => new Promise<Stats>((r) => (resolveOld = r)))
       .mockResolvedValue({ rows: [], male: 0, female: 0, total: 77 });
     renderAt("/p/tok");
-    const group = await screen.findByRole("group", { name: "합계에 포함할 부스" }, T);
+    const group = await openPicker();
     await waitFor(() => expect(link.partnerStats).toHaveBeenCalledTimes(1));
     await user.click(within(group).getByRole("checkbox", { name: "팽이 돌리기" }));
-    expect(await screen.findByText("77")).toBeInTheDocument();
+    expect(await within(await screen.findByLabelText("합계")).findByText("77")).toBeInTheDocument();
     resolveOld({ rows: [], male: 0, female: 0, total: 999 });
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText("999")).not.toBeInTheDocument();
-    expect(screen.getByText("77")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("합계")).getByText("77")).toBeInTheDocument();
   });
 
   it("실적 조회가 실패하면 안내와 다시 시도를 보여준다", async () => {
@@ -249,6 +255,7 @@ describe("StatsPanel", () => {
       .mockResolvedValue(stats);
     renderAt("/p/tok");
     expect(await screen.findByRole("button", { name: "다시 시도" }, T)).toBeInTheDocument();
+    await openPicker();
     const box = screen.getByRole("checkbox", { name: "팽이 돌리기" });
     await user.click(box);
     expect(await screen.findByText("3", { selector: "dd" })).toBeInTheDocument();

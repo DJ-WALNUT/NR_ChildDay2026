@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 import { fieldErrors, messageFor } from "../api/messages";
 import type { Booth, BoothMode, BoothSettings } from "../api/types";
 import { Button, Choice, Notice, TextField } from "../ui";
@@ -110,15 +110,25 @@ export function SettingsForm({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="flex min-h-11 w-full items-center justify-between text-15 font-extrabold"
+        aria-label="부스 설정"
+        className="flex min-h-14 w-full items-center justify-between gap-3 rounded-md border-2 border-ink bg-paper-2 px-4 py-2 text-left"
       >
-        설정
-        <ChevronDown aria-hidden className={`size-5 ${open ? "rotate-180" : ""}`} />
+        <span className="flex min-w-0 items-center gap-3">
+          <Settings aria-hidden className="size-5 shrink-0" />
+          <span className="min-w-0">
+            <span className="block text-18 font-extrabold">부스 설정</span>
+            <span className="block text-13 text-muted">이름, 방식, 시간, 인원 바꾸기</span>
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1 text-15 font-bold">
+          {open ? "닫기" : "열기"}
+          <ChevronDown aria-hidden className={`size-5 ${open ? "rotate-180" : ""}`} />
+        </span>
       </button>
       <form
         hidden={!open}
         noValidate
-        className="space-y-4"
+        className="mt-4 space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (dirty.length === 0) {

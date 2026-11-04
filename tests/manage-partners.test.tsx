@@ -104,6 +104,33 @@ beforeEach(() => {
   vi.mocked(admin.getEvent).mockResolvedValue({ event: EVENT, org: ORG });
 });
 
+describe("운영 단체 목록 검색·스크롤", () => {
+  const many = Array.from({ length: 10 }, (_, i) => ({ ...PARTNER, id: 100 + i, name: `단체${i + 1}`, linked_org: null }));
+
+  it("9개까지는 검색칸도 스크롤도 없다", async () => {
+    vi.mocked(admin.listPartners).mockResolvedValue(many.slice(0, 9));
+    renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    const region = await screen.findByRole("region", { name: "운영 단체 목록" });
+    expect(region).not.toHaveClass("overflow-y-auto");
+    expect(screen.queryByLabelText("단체 검색")).not.toBeInTheDocument();
+  });
+
+  it("10개부터 목록을 스크롤로 담고 이름·연결 기관으로 검색한다", async () => {
+    vi.mocked(admin.listPartners).mockResolvedValue([...many, { ...PARTNER, id: 200, name: "청년부" }]);
+    renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    const region = await screen.findByRole("region", { name: "운영 단체 목록" });
+    expect(region).toHaveClass("overflow-y-auto");
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText("단체 검색"), "사랑");
+    expect(within(region).getByText("청년부")).toBeInTheDocument();
+    expect(within(region).queryByText("단체1")).not.toBeInTheDocument();
+    await u.clear(screen.getByLabelText("단체 검색"));
+    await u.type(screen.getByLabelText("단체 검색"), "없는 이름");
+    expect(await screen.findByText("찾는 단체가 없어요")).toBeInTheDocument();
+    expect(screen.getByLabelText("단체 검색")).toBeInTheDocument();
+  });
+});
+
 describe("재조회 실패", () => {
   const fail = () => vi.mocked(admin.listBooths).mockRejectedValue(new ApiError(500, "server"));
 

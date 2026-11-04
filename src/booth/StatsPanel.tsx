@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Download } from "lucide-react";
+import { ChevronDown, Download } from "lucide-react";
 import { messageFor } from "../api/messages";
 import type { Booth, ExportData, Stats, StatsMode } from "../api/types";
 import { downloadBlob } from "../lib/download";
 import { buildRosterWorkbook, MODE_LABEL, MODE_NOTE } from "../lib/excel";
-import { Button, Notice, Spinner, Tabs } from "../ui";
+import { Button, Choice, Notice, Spinner, TextField, type ChoiceOption } from "../ui";
 import { StatsTable } from "./StatsTable";
 
 const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-const MODES = [
-  { id: "simple", label: MODE_LABEL.simple },
-  { id: "strict", label: MODE_LABEL.strict },
+const MODES: ChoiceOption<StatsMode>[] = [
+  { value: "simple", label: MODE_LABEL.simple },
+  { value: "strict", label: MODE_LABEL.strict },
 ];
 
 type Shown = { key: string; stats: Stats };
@@ -39,6 +39,8 @@ export function StatsPanel({
   const [retry, setRetry] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [boothQuery, setBoothQuery] = useState("");
 
   // 부스 목록 순서를 지킨 선택 id
   const ids = booths.filter((b) => selected.has(b.id)).map((b) => b.id);
@@ -64,6 +66,19 @@ export function StatsPanel({
     // ids 는 key 에서 나온다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, retry]);
+
+  const term = boothQuery.trim();
+  const listed = term ? booths.filter((b) => b.name.includes(term)) : booths;
+  // 검색 중에는 보이는 부스에만 적용한다.
+  const pickListed = (on: boolean) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      for (const b of listed) {
+        if (on) n.add(b.id);
+        else n.delete(b.id);
+      }
+      return n;
+    });
 
   const toggle = (id: number) =>
     setSelected((s) => {
@@ -97,26 +112,10 @@ export function StatsPanel({
 
   return (
     <section aria-label="실적" className="space-y-4">
-      <fieldset className="min-w-0 space-y-1">
-        <legend className="text-15 font-extrabold">합계에 포함할 부스</legend>
-        <div className="flex flex-wrap gap-2 py-1">
-          <Button variant="secondary" onClick={() => setSelected(new Set(booths.map((b) => b.id)))}>
-            전체 선택
-          </Button>
-          <Button variant="secondary" onClick={() => setSelected(new Set())}>
-            전체 해제
-          </Button>
-        </div>
-        {booths.map((b) => (
-          <label key={b.id} className="flex min-h-11 items-center gap-3 text-15 font-bold">
-            <input type="checkbox" className="size-5 shrink-0 accent-ink" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
-            <span className="min-w-0 break-words">{b.name}</span>
-          </label>
-        ))}
-      </fieldset>
-
-      <Tabs items={MODES} value={mode} onChange={(m) => setMode(m as StatsMode)} />
-      <p className="text-13 text-muted">{MODE_NOTE[mode]}</p>
+      <div className="space-y-1">
+        <Choice label="합계 방식" value={mode} onChange={setMode} options={MODES} />
+        <p className="text-13 text-muted">{MODE_NOTE[mode]}</p>
+      </div>
 
       <div aria-live="polite" aria-busy={ids.length > 0 && !current && !error}>
         {ids.length === 0 ? (
@@ -141,6 +140,48 @@ export function StatsPanel({
           </div>
         ) : (
           <Spinner />
+        )}
+      </div>
+
+      <div>
+        <button
+          type="button"
+          aria-expanded={picking}
+          onClick={() => setPicking(!picking)}
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md border-2 border-muted bg-paper-2 px-3 py-2 text-left text-15 font-extrabold"
+        >
+          합계에 포함할 부스
+          <span className="flex shrink-0 items-center gap-2 text-13 font-bold tabular-nums">
+            {ids.length} / {booths.length}개 선택
+            <ChevronDown aria-hidden className={`size-5 ${picking ? "rotate-180" : ""}`} />
+          </span>
+        </button>
+        {picking && (
+          <fieldset className="mt-3 min-w-0 space-y-3">
+            <legend className="sr-only">합계에 포함할 부스</legend>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="min-w-48 flex-1">
+                <TextField label="부스 검색" type="search" value={boothQuery} onChange={(e) => setBoothQuery(e.target.value)} autoComplete="off" />
+              </div>
+              <Button variant="secondary" onClick={() => pickListed(true)}>
+                전체 선택
+              </Button>
+              <Button variant="secondary" onClick={() => pickListed(false)}>
+                전체 해제
+              </Button>
+            </div>
+            <ul className="grid max-h-80 gap-x-4 overflow-y-auto sm:grid-cols-2">
+              {listed.map((b) => (
+                <li key={b.id} className="min-w-0">
+                  <label className="flex min-h-11 items-center gap-3 text-15 font-bold">
+                    <input type="checkbox" className="size-5 shrink-0 accent-ink" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
+                    <span className="min-w-0 break-words">{b.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            {listed.length === 0 && <p className="text-15 text-muted">찾는 부스가 없어요.</p>}
+          </fieldset>
         )}
       </div>
 

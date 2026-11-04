@@ -1,13 +1,14 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { adminKeys, batchBoothStatus, createBooth, listBooths } from "../../api/admin";
-import { fieldErrors, messageFor } from "../../api/messages";
+import { adminKeys, batchBoothStatus, listBooths, toggleBooth } from "../../api/admin";
+import { messageFor } from "../../api/messages";
 import type { Booth } from "../../api/types";
-import { Button, DataTable, EmptyState, Notice, Spinner, Stamp, TextField, type Column } from "../../ui";
+import { Button, DataTable, EmptyState, Notice, Spinner, Stamp, type Column } from "../../ui";
 import { RefetchNotice } from "../RefetchNotice";
 import BulkImport from "./BulkImport";
 import type { EventTabProps } from "./EventPage";
+import { NewBoothForm } from "./NewBoothForm";
 
 const MODE = { time: "시간대별", fcfs: "선착순" };
 
@@ -17,10 +18,7 @@ export default function BoothsTab({ event, org }: EventTabProps) {
   const [picked, setPicked] = useState<number[]>([]);
   const [batchError, setBatchError] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
-  const [name, setName] = useState("");
-  const [nameError, setNameError] = useState<string | undefined>();
-  const [addError, setAddError] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [switching, setSwitching] = useState<number | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
 
   const booths = q.data ?? [];
@@ -51,21 +49,16 @@ export default function BoothsTab({ event, org }: EventTabProps) {
     }
   }
 
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    setNameError(undefined);
-    setAddError(null);
-    setAdding(true);
+  async function switchBooth(b: Booth) {
+    setBatchError(null);
+    setSwitching(b.id);
     try {
-      await createBooth(event.id, { name: name.trim() });
-      setName("");
+      await toggleBooth(b.id);
       await refresh();
     } catch (err) {
-      const fields = fieldErrors(err);
-      setNameError(fields.name);
-      if (Object.keys(fields).length === 0) setAddError(messageFor(err));
+      setBatchError(messageFor(err));
     } finally {
-      setAdding(false);
+      setSwitching(null);
     }
   }
 
@@ -102,9 +95,29 @@ export default function BoothsTab({ event, org }: EventTabProps) {
         </Link>
       ),
     },
+    {
+      key: "status",
+      header: "운영",
+      render: (b) => {
+        const action = b.is_active ? "운영 마감" : "운영 시작";
+        return (
+          <div className="flex items-center gap-3">
+            <Stamp kind={b.is_active ? "live" : "closed"} />
+            <Button
+              variant={b.is_active ? "secondary" : "primary"}
+              aria-label={`${b.name} ${action}`}
+              loading={switching === b.id}
+              disabled={batchBusy}
+              onClick={() => void switchBooth(b)}
+            >
+              {action}
+            </Button>
+          </div>
+        );
+      },
+    },
     { key: "mode", header: "방식", render: (b) => MODE[b.mode] },
     { key: "count", header: "신청 수", numeric: true, render: (b) => b.count },
-    { key: "status", header: "상태", render: (b) => <Stamp kind={b.is_active ? "live" : "closed"} /> },
     {
       key: "detail",
       header: "상세",
@@ -132,6 +145,7 @@ export default function BoothsTab({ event, org }: EventTabProps) {
   return (
     <div className="space-y-6">
       <RefetchNotice queries={[q]} />
+      <NewBoothForm eventId={event.id} onCreated={refresh} onBulk={() => setBulkOpen(true)} />
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-15 tabular-nums">{selected.length}개 선택</span>
@@ -153,29 +167,9 @@ export default function BoothsTab({ event, org }: EventTabProps) {
           columns={columns}
           rows={booths}
           rowKey={(b) => String(b.id)}
-          empty={<EmptyState title="아직 부스가 없어요" body="아래에서 첫 부스를 추가해 보세요." />}
+          empty={<EmptyState title="아직 부스가 없어요" body="위에서 첫 부스를 추가해 보세요." />}
         />
       </section>
-      <form onSubmit={add} className="space-y-3">
-        {addError && <Notice tone="error">{addError}</Notice>}
-        <div className="flex flex-wrap items-start gap-3">
-          <div className="min-w-60 flex-1">
-            <TextField
-              label="부스 이름"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              error={nameError}
-              hint="방식·시간 같은 상세 설정은 부스 상세에서 바꿔요."
-            />
-          </div>
-          <Button type="submit" loading={adding} className="mt-6">
-            부스 추가
-          </Button>
-          <Button variant="secondary" className="mt-6" onClick={() => setBulkOpen(true)}>
-            엑셀로 일괄 등록
-          </Button>
-        </div>
-      </form>
       {bulkOpen && <BulkImport event={event} onClose={() => setBulkOpen(false)} />}
     </div>
   );

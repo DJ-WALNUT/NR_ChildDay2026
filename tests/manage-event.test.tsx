@@ -17,6 +17,7 @@ vi.mock("../src/api/admin", async (orig) => ({
   listBooths: vi.fn(),
   createBooth: vi.fn(),
   batchBoothStatus: vi.fn(),
+  toggleBooth: vi.fn(),
 }));
 import * as admin from "../src/api/admin";
 
@@ -232,6 +233,87 @@ describe("관리자 메뉴", () => {
 });
 
 describe("행사 화면", () => {
+  it("새 부스 만들기 폼이 부스 목록 위에 펼쳐져 있고 타임별 기본값이 들어 있다", async () => {
+    renderAt("/manage/events/10");
+    const form = await screen.findByRole("form", { name: "새 부스 만들기" });
+    const table = await screen.findByRole("table", { name: "부스 목록" });
+    expect(form.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(form).getByLabelText("시작 시각")).toHaveValue(11);
+    expect(within(form).getByLabelText("종료 시각")).toHaveValue(16);
+    expect(within(form).getByLabelText("시간당 타임 수")).toHaveValue(3);
+    expect(within(form).getByLabelText("타임당 인원")).toHaveValue(5);
+    expect(within(form).getByRole("button", { name: "엑셀로 일괄 등록" })).toBeInTheDocument();
+    expect(within(form).getByRole("button", { name: "엑셀 양식 내려받기" })).toBeInTheDocument();
+  });
+
+  it("폼의 값으로 타임별 부스를 만들고 이름만 비운다", async () => {
+    vi.mocked(admin.createBooth).mockResolvedValue(booth(4));
+    renderAt("/manage/events/10");
+    const form = await screen.findByRole("form", { name: "새 부스 만들기" });
+    const u = userEvent.setup();
+    await u.type(within(form).getByLabelText("부스 이름"), "새 부스");
+    await u.clear(within(form).getByLabelText("타임당 인원"));
+    await u.type(within(form).getByLabelText("타임당 인원"), "8");
+    await u.click(within(form).getByRole("button", { name: "부스 추가" }));
+    await waitFor(() =>
+      expect(admin.createBooth).toHaveBeenCalledWith(10, {
+        name: "새 부스",
+        mode: "time",
+        use_waitlist: false,
+        start_hour: 11,
+        end_hour: 16,
+        slots_per_hour: 3,
+        limit_per_slot: 8,
+      }),
+    );
+    await waitFor(() => expect(within(form).getByLabelText("부스 이름")).toHaveValue(""));
+    expect(within(form).getByLabelText("타임당 인원")).toHaveValue(8);
+  });
+
+  it("선착순을 고르면 선착순 인원만 받아 보낸다", async () => {
+    vi.mocked(admin.createBooth).mockResolvedValue(booth(4));
+    renderAt("/manage/events/10");
+    const form = await screen.findByRole("form", { name: "새 부스 만들기" });
+    const u = userEvent.setup();
+    await u.type(within(form).getByLabelText("부스 이름"), "솜사탕");
+    await u.click(within(form).getByRole("radio", { name: "선착순" }));
+    expect(within(form).queryByLabelText("시작 시각")).not.toBeInTheDocument();
+    expect(within(form).getByLabelText("선착순 인원")).toHaveValue(100);
+    await u.click(within(form).getByRole("checkbox", { name: "대기 접수 받기" }));
+    await u.click(within(form).getByRole("button", { name: "부스 추가" }));
+    await waitFor(() =>
+      expect(admin.createBooth).toHaveBeenCalledWith(10, { name: "솜사탕", mode: "fcfs", use_waitlist: true, total_limit: 100 }),
+    );
+  });
+
+  it("숫자 칸의 422 는 그 칸에 보인다", async () => {
+    vi.mocked(admin.createBooth).mockRejectedValue(new ApiError(422, "invalid", { slots_per_hour: "1~6 사이여야 합니다." }));
+    renderAt("/manage/events/10");
+    const form = await screen.findByRole("form", { name: "새 부스 만들기" });
+    const u = userEvent.setup();
+    await u.type(within(form).getByLabelText("부스 이름"), "x");
+    await u.click(within(form).getByRole("button", { name: "부스 추가" }));
+    expect(await within(form).findByText("1~6 사이여야 합니다.")).toBeInTheDocument();
+  });
+
+  it("목록에서 부스별로 운영 시작·마감을 바꾼다", async () => {
+    vi.mocked(admin.toggleBooth).mockResolvedValue({ is_active: false });
+    renderAt("/manage/events/10");
+    const u = userEvent.setup();
+    const first = await screen.findByRole("button", { name: `${booth(1).name} 운영 마감` });
+    const calls = vi.mocked(admin.listBooths).mock.calls.length;
+    await u.click(first);
+    await waitFor(() => expect(admin.toggleBooth).toHaveBeenCalledWith(1));
+    await waitFor(() => expect(vi.mocked(admin.listBooths).mock.calls.length).toBeGreaterThan(calls));
+  });
+
+  it("개별 운영 전환이 실패하면 안내한다", async () => {
+    vi.mocked(admin.toggleBooth).mockRejectedValue(new ApiError(0, "network"));
+    renderAt("/manage/events/10");
+    await userEvent.setup().click(await screen.findByRole("button", { name: `${booth(1).name} 운영 마감` }));
+    expect(await screen.findByText("연결이 불안정해요. 잠시 뒤 다시 시도해 주세요.")).toBeInTheDocument();
+  });
+
   it("?tab=stats 는 실적 탭을 선택하고 탭을 누르면 주소가 바뀐다", async () => {
     const { where } = renderAt("/manage/events/10?tab=stats");
     const stats = await screen.findByRole("tab", { name: "실적" });
@@ -374,7 +456,7 @@ describe("부스 탭", () => {
     expect(screen.getByRole("checkbox", { name: "부스1 선택" })).toBeChecked();
   });
 
-  it("이름만 입력해 부스를 추가하고 목록을 갱신한다", async () => {
+  it("부스를 추가하면 목록을 갱신한다", async () => {
     vi.mocked(admin.createBooth).mockResolvedValue(booth(4));
     renderAt("/manage/events/10");
     const u = userEvent.setup();
@@ -382,7 +464,7 @@ describe("부스 탭", () => {
     const calls = vi.mocked(admin.listBooths).mock.calls.length;
     const eventCalls = vi.mocked(admin.getEvent).mock.calls.length;
     await u.click(screen.getByRole("button", { name: "부스 추가" }));
-    await waitFor(() => expect(admin.createBooth).toHaveBeenCalledWith(10, { name: "새 부스" }));
+    await waitFor(() => expect(admin.createBooth).toHaveBeenCalledWith(10, expect.objectContaining({ name: "새 부스" })));
     await waitFor(() => expect(vi.mocked(admin.getEvent).mock.calls.length).toBeGreaterThan(eventCalls));
     await waitFor(() => expect(vi.mocked(admin.listBooths).mock.calls.length).toBeGreaterThan(calls));
     expect(screen.getByLabelText("부스 이름")).toHaveValue("");

@@ -4,17 +4,14 @@ import { adminKeys, bulkCreateBooths } from "../../api/admin";
 import { messageFor } from "../../api/messages";
 import type { AdminEvent } from "../../api/types";
 import {
-  BULK_FILE_NAME,
-  buildBulkTemplate,
+  downloadBulkTemplate,
   bulkErrors,
   parseBulkWorkbook,
   type BulkProblem,
   type BulkRow,
 } from "../../lib/bulkBooths";
-import { downloadBlob } from "../../lib/download";
 import { Button, DataTable, Modal, Notice, type Column } from "../../ui";
 
-const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const MODE = { time: "시간대별", fcfs: "선착순" };
 
 const columns: Column<BulkRow>[] = [
@@ -96,9 +93,7 @@ export default function BulkImport({ event, onClose }: { event: AdminEvent; onCl
         <Button
           variant="secondary"
           onClick={() =>
-            void buildBulkTemplate()
-              .then((buf) => downloadBlob(buf, BULK_FILE_NAME, XLSX))
-              .catch(() => setError("양식을 만들지 못했어요. 다시 시도해 주세요."))
+            void downloadBulkTemplate().catch(() => setError("양식을 만들지 못했어요. 다시 시도해 주세요."))
           }
         >
           양식 내려받기

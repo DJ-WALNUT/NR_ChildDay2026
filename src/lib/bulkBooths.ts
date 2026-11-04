@@ -1,9 +1,11 @@
 import type { CellValue } from "exceljs";
 import { ApiError } from "../api/client";
 import type { BoothSettings } from "../api/types";
+import { downloadBlob } from "./download";
 
 export const BULK_HEADERS = ["부스이름", "운영방식", "선착순 인원", "시작시각", "종료시각", "시간당 타임수", "타임당 인원", "대기자 접수"];
 export const MAX_BULK = 500;
+const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 export const BULK_FILE_NAME = "부스_일괄등록_양식.xlsx";
 
 /** sheetRow 는 엑셀의 실제 행 번호. 서버에는 보내지 않는다. */
@@ -27,6 +29,10 @@ const HINTS = [
   "한 타임 정원. 0 또는 비우면 무제한",
   "Y 또는 N. 비우면 N",
 ];
+
+export async function downloadBulkTemplate(): Promise<void> {
+  downloadBlob(await buildBulkTemplate(), BULK_FILE_NAME, XLSX);
+}
 
 export async function buildBulkTemplate(): Promise<ArrayBuffer> {
   const { Workbook } = await import("exceljs");

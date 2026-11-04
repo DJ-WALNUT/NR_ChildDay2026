@@ -31,6 +31,9 @@ const STATUS_LABEL: Record<ReservationStatus, string> = {
   completed: "체험완료",
 };
 
+// 이 인원부터 명단을 스크롤 영역에 담는다.
+const SCROLL_FROM = 15;
+
 const STAMP = { waiting: "wait", noshow: "noshow", completed: "done" } as const;
 
 function groupBySlot(rows: Reservation[]): { slot: string; rows: Reservation[] }[] {
@@ -93,6 +96,10 @@ export function RosterList({
   });
 
   if (reservations.length === 0) return <EmptyState title="아직 신청이 없어요." />;
+  // 요소는 그대로 두고 속성만 바꾼다. 인원이 기준을 넘나들어도 행이 다시 만들어져 포커스를 잃지 않게 한다.
+  const scroll = shown.length >= SCROLL_FROM
+    ? ({ role: "region", "aria-label": "명단 목록", tabIndex: 0, className: "mt-2 max-h-[70dvh] overflow-y-auto pr-2" } as const)
+    : {};
 
   return (
     <div>
@@ -108,6 +115,7 @@ export function RosterList({
         className="h-11 w-full rounded-md border-2 border-muted bg-paper-2 px-3 text-15 text-ink focus:border-ink"
       />
       {groups.length === 0 && <EmptyState title="찾는 신청이 없어요." />}
+      <div {...scroll}>
       {groups.map((g) => (
         <section key={g.slot} aria-label={g.slot || "전체"} className="mt-4">
           <h3 className="flex items-baseline justify-between border-b-2 border-ink pb-1 text-15 font-extrabold">
@@ -160,6 +168,7 @@ export function RosterList({
           </ul>
         </section>
       ))}
+      </div>
     </div>
   );
 }

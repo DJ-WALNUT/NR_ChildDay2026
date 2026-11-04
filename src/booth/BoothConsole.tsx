@@ -221,20 +221,6 @@ export default function BoothConsole({
 
       <StatsTable stats={stats} />
 
-      <section aria-label="명단">
-        <h2 ref={rosterHeading} tabIndex={-1} className="mb-2 text-18 font-extrabold tracking-[-0.03em]">
-          명단
-        </h2>
-        <RosterList
-          reservations={reservations}
-          pending={pendingRids}
-          removed={removed}
-          fallbackFocus={rosterHeading}
-          onStatus={(r, next) => status.mutate({ rid: r.id, status: next, prev: r.status })}
-          onDelete={setDeleting}
-        />
-      </section>
-
       <SettingsForm
         booth={booth}
         onSave={(s) => source.patch(s)}
@@ -259,6 +245,20 @@ export default function BoothConsole({
 
       {(typeof access === "function" ? access(q.data) : access) === "own" &&
         (typeof extraOwnActions === "function" ? extraOwnActions(q.data) : extraOwnActions)}
+
+      <section aria-label="명단">
+        <h2 ref={rosterHeading} tabIndex={-1} className="mb-2 text-18 font-extrabold tracking-[-0.03em]">
+          명단
+        </h2>
+        <RosterList
+          reservations={reservations}
+          pending={pendingRids}
+          removed={removed}
+          fallbackFocus={rosterHeading}
+          onStatus={(r, next) => status.mutate({ rid: r.id, status: next, prev: r.status })}
+          onDelete={setDeleting}
+        />
+      </section>
 
       <ConfirmDialog
         open={deleting !== null}

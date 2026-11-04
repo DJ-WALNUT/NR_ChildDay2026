@@ -23,6 +23,8 @@ import type { EventTabProps } from "./EventPage";
 import { EditDialog, LinkedOrgSelect, NONE } from "./PartnerEdit";
 
 const partnerLink = (p: Partner) => `${window.location.origin}/p/${p.access_token}`;
+// 이 개수부터 목록을 스크롤로 묶고 검색칸을 보여 준다.
+const SEARCH_FROM = 10;
 const selectClass = "h-11 rounded-md border-2 border-muted bg-paper-2 px-3 text-15 focus:border-ink";
 
 export default function PartnersTab({ event, org }: EventTabProps) {
@@ -42,10 +44,16 @@ export default function PartnersTab({ event, org }: EventTabProps) {
   const [busy, setBusy] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
   const [assigning, setAssigning] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
 
   const partners = partnersQ.data ?? [];
   const booths = boothsQ.data ?? [];
   const targets = targetsQ.data ?? [];
+  const many = partners.length >= SEARCH_FROM;
+  const term = many ? query.trim() : "";
+  const shownPartners = term
+    ? partners.filter((p) => p.name.includes(term) || (p.linked_org?.name.includes(term) ?? false))
+    : partners;
 
   // 단체가 바뀌면 부스 수·배정·행사 요약이 함께 달라진다.
   const refresh = () =>
@@ -176,13 +184,21 @@ export default function PartnersTab({ event, org }: EventTabProps) {
       {rowError && <Notice tone="error">{rowError}</Notice>}
       <RefetchNotice queries={[partnersQ, boothsQ]} />
       <section className="space-y-3">
+        {many && <TextField label="단체 검색" type="search" value={query} onChange={(e) => setQuery(e.target.value)} autoComplete="off" />}
         <DataTable
           caption="운영 단체 목록"
           scrollHint
+          scrollBody={many}
           columns={partnerColumns}
-          rows={partners}
+          rows={shownPartners}
           rowKey={(p) => String(p.id)}
-          empty={<EmptyState title="아직 운영 단체가 없어요" body="아래에서 첫 단체를 추가해 보세요." />}
+          empty={
+            term ? (
+              <EmptyState title="찾는 단체가 없어요" />
+            ) : (
+              <EmptyState title="아직 운영 단체가 없어요" body="아래에서 첫 단체를 추가해 보세요." />
+            )
+          }
         />
         <form onSubmit={add} className="space-y-3">
           {addError && <Notice tone="error">{addError}</Notice>}

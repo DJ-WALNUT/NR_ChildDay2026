@@ -114,6 +114,30 @@ function statefulSource(over: Partial<BoothSource> = {}) {
 }
 
 describe("BoothConsole", () => {
+  it("설정 열기는 테두리가 있는 큰 버튼이고 무엇을 바꾸는지와 열림 상태를 글로 보인다", async () => {
+    const user = userEvent.setup();
+    wrap(<BoothConsole source={fakeSource()} access="manage" />);
+    const toggle = await screen.findByRole("button", { name: "부스 설정" });
+    expect(toggle).toHaveClass("min-h-14", "border-2", "border-ink");
+    expect(toggle).toHaveTextContent("이름, 방식, 시간, 인원 바꾸기");
+    expect(toggle).toHaveTextContent("열기");
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveTextContent("닫기");
+  });
+
+  it("설정·내려받기·QR 이 통계 아래에 오고 명단이 맨 아래다", async () => {
+    wrap(<BoothConsole source={fakeSource()} access="own" extraOwnActions={<section aria-label="부스 관리 도구" />} />);
+    const roster = await screen.findByRole("region", { name: "명단" });
+    const order = ["연령대별 통계", "부스 설정", "내려받기와 초기화", "QR와 링크", "부스 관리 도구"].map((n) =>
+      screen.getByRole("region", { name: n }),
+    );
+    [...order, roster].reduce((a, b) => {
+      expect(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      return b;
+    });
+  });
+
   it("명단이 슬롯 순서로 묶여 보이고 숫자 표가 맞다", async () => {
     const get = async () => {
       const d = detail();
@@ -121,7 +145,7 @@ describe("BoothConsole", () => {
     };
     wrap(<BoothConsole source={fakeSource({ get })} access="manage" />);
     await screen.findByRole("heading", { name: "비누 만들기" });
-    const heads = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+    const heads = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent).filter((t) => t?.endsWith("명"));
     // 문자열 순서면 "10시"가 "9시"보다 앞서므로, 시각 숫자 순서인지 확인한다.
     expect(heads.slice(0, 4)).toEqual(["9시 A타임1명", "10시 A타임2명", "11시 A타임1명", "11시 B타임1명"]);
     const dl = screen.getByLabelText("신청 현황");
@@ -357,7 +381,7 @@ describe("BoothConsole", () => {
       throw new ApiError(422, "invalid", { end_hour: "종료 시각은 시작보다 늦어야 해요." });
     });
     wrap(<BoothConsole source={fakeSource({ patch })} access="manage" />);
-    await user.click(await screen.findByRole("button", { name: "설정" }));
+    await user.click(await screen.findByRole("button", { name: "부스 설정" }));
     const end = screen.getByLabelText("종료 시각");
     await user.clear(end);
     await user.type(end, "9");
@@ -371,7 +395,7 @@ describe("BoothConsole", () => {
     const user = userEvent.setup();
     const patch = vi.fn(async () => ({ ...booth, end_hour: 13 }));
     wrap(<BoothConsole source={fakeSource({ patch })} access="manage" />);
-    await user.click(await screen.findByRole("button", { name: "설정" }));
+    await user.click(await screen.findByRole("button", { name: "부스 설정" }));
     const end = screen.getByLabelText("종료 시각");
     await user.clear(end);
     await user.type(end, "13");
@@ -385,7 +409,7 @@ describe("BoothConsole", () => {
     const user = userEvent.setup();
     const patch = vi.fn(async () => booth);
     wrap(<BoothConsole source={fakeSource({ patch })} access="manage" />);
-    await user.click(await screen.findByRole("button", { name: "설정" }));
+    await user.click(await screen.findByRole("button", { name: "부스 설정" }));
     await user.click(screen.getByRole("button", { name: "저장" }));
     expect(patch).not.toHaveBeenCalled();
     expect(await screen.findByText("바꾼 내용이 없어요.")).toBeInTheDocument();
@@ -397,7 +421,7 @@ describe("BoothConsole", () => {
       throw new ApiError(500, "server_error");
     });
     wrap(<BoothConsole source={fakeSource({ patch })} access="manage" />);
-    await user.click(await screen.findByRole("button", { name: "설정" }));
+    await user.click(await screen.findByRole("button", { name: "부스 설정" }));
     const end = screen.getByLabelText("종료 시각");
     await user.clear(end);
     await user.type(end, "13");
@@ -418,7 +442,7 @@ describe("BoothConsole", () => {
       .mockResolvedValueOnce(detail())
       .mockResolvedValue({ ...detail(), booth: { ...booth, name: "새 이름", end_hour: 20 } });
     wrap(<BoothConsole source={fakeSource({ get })} access="manage" />);
-    await user.click(await screen.findByRole("button", { name: "설정" }));
+    await user.click(await screen.findByRole("button", { name: "부스 설정" }));
     const start = screen.getByLabelText("시작 시각");
     await user.clear(start);
     await user.type(start, "9");
@@ -434,7 +458,7 @@ describe("BoothConsole", () => {
       throw new ApiError(422, "invalid", { total_limit: "인원은 0 이상이어야 해요." });
     });
     wrap(<BoothConsole source={fakeSource({ patch })} access="manage" />);
-    await user.click(await screen.findByRole("button", { name: "설정" }));
+    await user.click(await screen.findByRole("button", { name: "부스 설정" }));
     await user.type(screen.getByLabelText("부스 이름"), "!");
     await user.click(screen.getByRole("button", { name: "저장" }));
     const alert = await screen.findByRole("alert");
@@ -445,7 +469,7 @@ describe("BoothConsole", () => {
   it("시각 안내가 서버 규칙(0 ≤ 시작 ≤ 종료 ≤ 23)과 같다", async () => {
     const user = userEvent.setup();
     wrap(<BoothConsole source={fakeSource()} access="manage" />);
-    await user.click(await screen.findByRole("button", { name: "설정" }));
+    await user.click(await screen.findByRole("button", { name: "부스 설정" }));
     expect(screen.getByText("종료는 시작과 같거나 늦어야 해요")).toBeInTheDocument();
     expect(screen.getByText("0~23 사이 정수")).toBeInTheDocument();
     expect(screen.getByLabelText("종료 시각")).toHaveAttribute("max", "23");

@@ -19,6 +19,7 @@ export function DataTable<T>({
   empty,
   caption,
   scrollHint = false,
+  scrollBody = false,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -28,6 +29,8 @@ export function DataTable<T>({
   caption?: string;
   /** 뒤쪽 칸이 화면 밖으로 나가는 표. 좁은 화면에서만 표 위에 안내 글자를 둔다. */
   scrollHint?: boolean;
+  /** 행이 많은 표. 높이를 묶어 세로로 스크롤하고 머리글은 위에 붙여 둔다. */
+  scrollBody?: boolean;
 }) {
   if (rows.length === 0 && empty) return <>{empty}</>;
   const align = (c: Column<T>) => ALIGN[c.align ?? (c.numeric ? "right" : "left")];
@@ -36,7 +39,7 @@ export function DataTable<T>({
       {scrollHint && <p className="text-13 text-muted sm:hidden">옆으로 밀면 더 있어요</p>}
       {/* 가로로 스크롤되는 영역은 키보드로도 닿아야 해서 초점을 받게 한다. relative 는 머리글의 sr-only(absolute)가 영역 밖으로 새어 페이지를 넓히지 않게 한다. */}
       <div
-        className="relative overflow-x-auto"
+        className={`relative overflow-x-auto ${scrollBody ? "max-h-120 overflow-y-auto" : ""}`}
         tabIndex={0}
         role={caption ? "region" : undefined}
         aria-label={caption}
@@ -46,7 +49,7 @@ export function DataTable<T>({
           <thead>
             <tr className="border-b-2 border-ink">
               {columns.map((c) => (
-                <th key={c.key} scope="col" className={`whitespace-nowrap px-3 py-2 text-13 font-bold ${align(c)}`}>
+                <th key={c.key} scope="col" className={`whitespace-nowrap px-3 py-2 text-13 font-bold ${align(c)} ${scrollBody ? "sticky top-0 z-10 bg-paper-2" : ""}`}>
                   {c.header}
                 </th>
               ))}
