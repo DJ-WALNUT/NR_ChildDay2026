@@ -73,7 +73,7 @@ describe("관리자 로그인", () => {
     vi.mocked(admin.login).mockResolvedValue({ user: USER, csrf: "tok" });
     vi.mocked(admin.getMe).mockResolvedValue(me());
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText("아이디"), "staff");
+    await u.type(await screen.findByLabelText("아이디"), "staff");
     await u.type(screen.getByLabelText("비밀번호"), "secret-pass");
     await u.click(screen.getByRole("button", { name: "로그인" }));
     await waitFor(() => expect(where()).toBe("/manage/events/1?tab=stats"));
@@ -87,7 +87,7 @@ describe("관리자 로그인", () => {
     vi.mocked(admin.login).mockResolvedValue({ user: USER, csrf: "tok" });
     vi.mocked(admin.getMe).mockResolvedValue(me());
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText("아이디"), "staff");
+    await u.type(await screen.findByLabelText("아이디"), "staff");
     await u.type(screen.getByLabelText("비밀번호"), "secret-pass");
     await u.click(screen.getByRole("button", { name: "로그인" }));
     await waitFor(() => expect(where()).toBe("/manage"));
