@@ -341,6 +341,16 @@ describe("BoothConsole", () => {
     expect(await screen.findByText("행사 이동")).toBeInTheDocument();
   });
 
+  it("access·extraOwnActions 는 함수로도 줄 수 있고 부스 정보를 받는다", async () => {
+    const extra = (d: BoothDetail) => <p>{d.booth.name} 추가</p>;
+    const { unmount } = wrap(<BoothConsole source={fakeSource()} access={() => "own"} extraOwnActions={extra} />);
+    expect(await screen.findByText("비누 만들기 추가")).toBeInTheDocument();
+    unmount();
+    wrap(<BoothConsole source={fakeSource()} access={() => "manage"} extraOwnActions={extra} />);
+    await screen.findByRole("heading", { name: "비누 만들기" });
+    expect(screen.queryByText("비누 만들기 추가")).not.toBeInTheDocument();
+  });
+
   it("설정 저장의 422 필드 오류를 해당 칸에 보여준다", async () => {
     const user = userEvent.setup();
     const patch = vi.fn(async () => {
@@ -510,5 +520,26 @@ describe("BoothLinkPage", () => {
     expect(await screen.findByRole("heading", { name: "비누 만들기" }, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByText(`${window.location.origin}/b/tok`)).toBeInTheDocument();
     expect(screen.getByText(`${window.location.origin}/nareum/reserve/7`)).toBeInTheDocument();
+    expect(screen.getByRole("main")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("만료·오류 화면에도 main 하나와 h1 하나", async () => {
+    vi.mocked(link.getBoothLink).mockRejectedValue(new ApiError(404, "not_found"));
+    const first = render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <RouterProvider router={createMemoryRouter(routes, { initialEntries: ["/b/gone"] })} />
+      </QueryClientProvider>,
+    );
+    await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, { timeout: 3000 });
+    expect(screen.getByRole("main")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    first.unmount();
+
+    vi.mocked(link.getBoothLink).mockRejectedValue(new ApiError(500, "server_error"));
+    renderAt("/b/tok");
+    await screen.findByRole("alert", {}, { timeout: 3000 });
+    expect(screen.getByRole("main")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 });

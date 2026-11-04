@@ -10,7 +10,10 @@ import {
   PageFrame,
   Stamp,
   Stub,
+  Modal,
   Tabs,
+  TabPanel,
+  TextAreaField,
   TextField,
 } from "../src/ui";
 
@@ -251,6 +254,17 @@ describe("DataTable", () => {
     );
     expect(screen.getByText("비어 있어요")).toBeInTheDocument();
   });
+  it("caption 이 있으면 표 이름과 스크롤 영역 이름이 되고 영역은 초점을 받는다", () => {
+    render(
+      <DataTable caption="부스 목록" columns={[{ key: "n", header: "이름" }]} rows={[{ n: "가" }]} rowKey={(r) => r.n} />,
+    );
+    expect(screen.getByRole("table", { name: "부스 목록" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "부스 목록" })).toHaveAttribute("tabindex", "0");
+  });
+  it("caption 이 없으면 region 을 만들지 않는다", () => {
+    render(<DataTable columns={[{ key: "n", header: "이름" }]} rows={[{ n: "가" }]} rowKey={(r) => r.n} />);
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
   it("행을 렌더한다", () => {
     render(
       <DataTable
@@ -284,6 +298,51 @@ describe("Tabs / Stub / PageFrame", () => {
     expect(screen.getByRole("tab", { name: /하나/ })).toHaveAttribute("aria-selected", "true");
     await user.click(screen.getByRole("tab", { name: "둘" }));
     expect(onChange).toHaveBeenCalledWith("b");
+  });
+  it("idBase 가 있으면 aria-controls 를 잇고 Home·End 로 처음·끝 탭을 고른다", async () => {
+    const user = userEvent.setup();
+    function Host() {
+      const [v, setV] = useState("b");
+      return (
+        <Tabs
+          idBase="t"
+          items={[
+            { id: "a", label: "가" },
+            { id: "b", label: "나" },
+            { id: "c", label: "다" },
+          ]}
+          value={v}
+          onChange={setV}
+        />
+      );
+    }
+    render(<Host />);
+    expect(screen.getByRole("tab", { name: "가" })).toHaveAttribute("aria-controls", "t-panel-a");
+    expect(screen.getByRole("tab", { name: "가" })).toHaveAttribute("id", "t-tab-a");
+    screen.getByRole("tab", { name: "나" }).focus();
+    await user.keyboard("{End}");
+    expect(screen.getByRole("tab", { name: "다" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "다" })).toHaveFocus();
+    await user.keyboard("{Home}");
+    expect(screen.getByRole("tab", { name: "가" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "가" })).toHaveFocus();
+  });
+  it("idBase 가 없으면 aria-controls 를 달지 않는다", () => {
+    render(<Tabs items={[{ id: "a", label: "가" }]} value="a" onChange={() => {}} />);
+    expect(screen.getByRole("tab", { name: "가" })).not.toHaveAttribute("aria-controls");
+  });
+  it("TabPanel 은 탭 이름을 이름으로 갖는다", () => {
+    render(
+      <>
+        <Tabs idBase="t" items={[{ id: "a", label: "가" }]} value="a" onChange={() => {}} />
+        <TabPanel idBase="t" id="a">
+          내용
+        </TabPanel>
+      </>,
+    );
+    const panel = screen.getByRole("tabpanel", { name: "가" });
+    expect(panel).toHaveAttribute("tabindex", "0");
+    expect(panel).toHaveTextContent("내용");
   });
   it("Stub to 는 새로고침 없이 라우트를 바꾼다", async () => {
     const user = userEvent.setup();
@@ -347,5 +406,64 @@ describe("Tabs / Stub / PageFrame", () => {
       </PageFrame>,
     );
     expect(screen.getByText("안").closest(".on-ink")).not.toBeNull();
+  });
+});
+
+describe("Modal", () => {
+  function Host({ onClose }: { onClose: () => void }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>열기</button>
+        {open && (
+          <Modal
+            title="제목"
+            onClose={() => {
+              onClose();
+              setOpen(false);
+            }}
+          >
+            <button>안쪽</button>
+          </Modal>
+        )}
+      </>
+    );
+  }
+  it("role=dialog 이름이 제목이고 Esc 로 닫히며 여는 버튼으로 초점이 돌아온다", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<Host onClose={onClose} />);
+    await user.click(screen.getByRole("button", { name: "열기" }));
+    expect(screen.getByRole("dialog", { name: "제목" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "안쪽" })).toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "열기" })).toHaveFocus();
+    expect(document.body.style.overflow).toBe("");
+  });
+  it("Tab 은 대화상자 안에서만 돈다", async () => {
+    const user = userEvent.setup();
+    render(
+      <Modal title="제목" onClose={() => {}}>
+        <button>하나</button>
+        <button>둘</button>
+      </Modal>,
+    );
+    expect(screen.getByRole("button", { name: "하나" })).toHaveFocus();
+    await user.tab();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "하나" })).toHaveFocus();
+  });
+});
+
+describe("TextAreaField", () => {
+  it("라벨·힌트·오류를 TextField 와 같게 잇는다", () => {
+    render(<TextAreaField label="메모" hint="짧게" error="필수" />);
+    const box = screen.getByRole("textbox", { name: "메모" });
+    expect(box).toHaveAttribute("aria-invalid", "true");
+    expect(box.getAttribute("aria-describedby")).toContain("-error");
+    expect(box.getAttribute("aria-describedby")).toContain("-hint");
   });
 });

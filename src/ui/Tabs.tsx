@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 
 export interface TabItem {
   id: string;
@@ -7,14 +7,31 @@ export interface TabItem {
   count?: number;
 }
 
-export function Tabs({ items, value, onChange }: { items: TabItem[]; value: string; onChange: (id: string) => void }) {
+const tabId = (idBase: string, id: string) => `${idBase}-tab-${id}`;
+const panelId = (idBase: string, id: string) => `${idBase}-panel-${id}`;
+
+export function Tabs({
+  items,
+  value,
+  onChange,
+  idBase,
+}: {
+  items: TabItem[];
+  value: string;
+  onChange: (id: string) => void;
+  /** 있으면 탭과 TabPanel 을 id 로 잇는다(aria-controls·aria-labelledby). */
+  idBase?: string;
+}) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function onKeyDown(e: KeyboardEvent, i: number) {
-    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-    if (!step) return;
+    let next: number;
+    if (e.key === "ArrowRight") next = (i + 1) % items.length;
+    else if (e.key === "ArrowLeft") next = (i - 1 + items.length) % items.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = items.length - 1;
+    else return;
     e.preventDefault();
-    const next = (i + step + items.length) % items.length;
     onChange(items[next].id);
     refs.current[next]?.focus();
   }
@@ -31,6 +48,8 @@ export function Tabs({ items, value, onChange }: { items: TabItem[]; value: stri
             }}
             type="button"
             role="tab"
+            id={idBase ? tabId(idBase, t.id) : undefined}
+            aria-controls={idBase ? panelId(idBase, t.id) : undefined}
             aria-selected={on}
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(t.id)}
@@ -42,6 +61,14 @@ export function Tabs({ items, value, onChange }: { items: TabItem[]; value: stri
           </button>
         );
       })}
+    </div>
+  );
+}
+
+export function TabPanel({ idBase, id, children }: { idBase: string; id: string; children: ReactNode }) {
+  return (
+    <div role="tabpanel" id={panelId(idBase, id)} aria-labelledby={tabId(idBase, id)} tabIndex={0}>
+      {children}
     </div>
   );
 }

@@ -19,12 +19,20 @@ export default function PartnerPage() {
     body = <NotFound title="이 링크는 더 이상 쓸 수 없어요." body="담당자에게 새 링크를 받아 주세요." />;
   } else if (q.isError) {
     body = (
-      <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
-        {messageFor(q.error)}
-      </Notice>
+      <>
+        <h1 className="sr-only">운영 단체 실적</h1>
+        <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
+          {messageFor(q.error)}
+        </Notice>
+      </>
     );
   } else if (!q.data) {
-    body = <Spinner />;
+    body = (
+      <>
+        <h1 className="sr-only">운영 단체 실적</h1>
+        <Spinner />
+      </>
+    );
   } else {
     const { partner, event, org, booths } = q.data;
     body = (
@@ -71,7 +79,7 @@ export default function PartnerPage() {
   }
   return (
     <PageFrame surface="paper" width="wide">
-      {body}
+      <main>{body}</main>
     </PageFrame>
   );
 }

@@ -1,5 +1,8 @@
 import type { Booth, BoothSettings, ExportData, Reservation, ReservationStatus, SetStatusResult, Stats } from "../api/types";
 
+/** 부스 화면의 권한: own 은 내 기관 부스(추가 동작 노출), manage 는 링크로 들어온 운영자. */
+export type BoothAccess = "own" | "manage";
+
 export interface BoothDetail {
   booth: Booth;
   org: { name: string; slug: string };

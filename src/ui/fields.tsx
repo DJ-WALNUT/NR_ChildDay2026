@@ -1,5 +1,5 @@
 import { useId } from "react";
-import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
+import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 const control =
   "h-11 w-full rounded-md border-2 bg-paper-2 px-3 text-15 text-ink placeholder:text-muted focus:border-ink disabled:opacity-50";
@@ -81,6 +81,32 @@ export function SelectField({ label, error, hint, options, id: idProp, className
           </option>
         ))}
       </select>
+      <Messages id={id} error={error} hint={hint} />
+    </div>
+  );
+}
+
+export interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string;
+  error?: string;
+  hint?: string;
+}
+
+export function TextAreaField({ label, error, hint, id: idProp, className = "", "aria-describedby": extraDesc, ...rest }: TextAreaFieldProps) {
+  const auto = useId();
+  const id = idProp ?? auto;
+  return (
+    <div className="text-ink">
+      <label htmlFor={id} className="mb-1 block text-13 font-bold">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(id, error, hint, extraDesc)}
+        className={`${control} min-h-24 py-2 ${error ? "border-stamp-red" : "border-muted"} ${className}`}
+        {...rest}
+      />
       <Messages id={id} error={error} hint={hint} />
     </div>
   );

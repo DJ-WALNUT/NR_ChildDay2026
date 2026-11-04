@@ -9,11 +9,13 @@ export default function BoothLinkPage() {
   const source = useMemo(() => boothLinkSource(token), [token]);
   return (
     <PageFrame surface="paper" width="wide">
-      <BoothConsole
-        source={source}
-        access="manage"
-        notFound={<NotFound title="이 링크는 더 이상 쓸 수 없어요." body="담당자에게 새 링크를 받아 주세요." />}
-      />
+      <main>
+        <BoothConsole
+          source={source}
+          access="manage"
+          notFound={<NotFound title="이 링크는 더 이상 쓸 수 없어요." body="담당자에게 새 링크를 받아 주세요." />}
+        />
+      </main>
     </PageFrame>
   );
 }

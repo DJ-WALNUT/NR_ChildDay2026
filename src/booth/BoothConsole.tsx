@@ -10,7 +10,7 @@ import { downloadBlob } from "../lib/download";
 import { buildRosterWorkbook, rosterFileName } from "../lib/excel";
 import { Button, ConfirmDialog, Notice, Spinner, Stamp } from "../ui";
 import { linksOf } from "./BoothSource";
-import type { BoothDetail, BoothSource } from "./BoothSource";
+import type { BoothAccess, BoothDetail, BoothSource } from "./BoothSource";
 import { QrPanel } from "./QrPanel";
 import { RosterList } from "./RosterList";
 import { SettingsForm } from "./SettingsForm";
@@ -44,8 +44,8 @@ export default function BoothConsole({
   notFound,
 }: {
   source: BoothSource;
-  access: "own" | "manage";
-  extraOwnActions?: ReactNode;
+  access: BoothAccess | ((d: BoothDetail) => BoothAccess);
+  extraOwnActions?: ReactNode | ((d: BoothDetail) => ReactNode);
   /** 404 일 때 오류 대신 보여줄 화면 */
   notFound?: ReactNode;
 }) {
@@ -153,9 +153,12 @@ export default function BoothConsole({
   if (q.isError && notFound && q.error instanceof ApiError && q.error.status === 404) return <>{notFound}</>;
   if (q.isError && !q.data) {
     return (
-      <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
-        {messageFor(q.error)}
-      </Notice>
+      <>
+        <h1 className="sr-only">부스 관리</h1>
+        <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
+          {messageFor(q.error)}
+        </Notice>
+      </>
     );
   }
   if (!q.data) return <Spinner />;
@@ -250,7 +253,8 @@ export default function BoothConsole({
 
       <QrPanel boothName={booth.name} links={linksOf(q.data)} />
 
-      {access === "own" && extraOwnActions}
+      {(typeof access === "function" ? access(q.data) : access) === "own" &&
+        (typeof extraOwnActions === "function" ? extraOwnActions(q.data) : extraOwnActions)}
 
       <ConfirmDialog
         open={deleting !== null}

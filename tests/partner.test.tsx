@@ -268,3 +268,55 @@ describe("StatsPanel", () => {
     await waitFor(() => expect(btn).toBeEnabled());
   });
 });
+
+describe("현장 화면 구조", () => {
+  const structure = () => {
+    expect(screen.getByRole("main")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  };
+  it("/p/:token 정상: main 하나와 h1 하나", async () => {
+    vi.mocked(link.getPartner).mockResolvedValue(payload([mk(12, "비누 만들기")]));
+    renderAt("/p/tok");
+    await screen.findByRole("heading", { name: "청년부" }, T);
+    structure();
+  });
+  it("/p/:token 부스 없음·만료·오류에도 h1 하나", async () => {
+    vi.mocked(link.getPartner).mockResolvedValue(payload([]));
+    renderAt("/p/tok");
+    await screen.findByRole("heading", { name: "청년부" }, T);
+    structure();
+  });
+  it("/p/:token 404", async () => {
+    vi.mocked(link.getPartner).mockRejectedValue(new ApiError(404, "not_found"));
+    renderAt("/p/gone");
+    await screen.findByText("이 링크는 더 이상 쓸 수 없어요.", {}, T);
+    structure();
+  });
+  it("/p/:token 서버 오류", async () => {
+    vi.mocked(link.getPartner).mockRejectedValue(new ApiError(500, "server_error"));
+    renderAt("/p/tok");
+    await screen.findByRole("alert", {}, T);
+    structure();
+  });
+  it("/p/:token/booths/:id 정상·404·오류", async () => {
+    vi.mocked(link.listReservationsPartnerBooth).mockResolvedValue({ reservations: [] });
+    vi.mocked(link.getPartnerBooth).mockResolvedValue({ booth: mk(12, "비누 만들기") });
+    renderAt("/p/tok/booths/12");
+    await screen.findByRole("heading", { name: "비누 만들기" }, T);
+    structure();
+  });
+  it("/p/:token/booths/:id 404", async () => {
+    vi.mocked(link.getPartnerBooth).mockRejectedValue(new ApiError(404, "not_found"));
+    vi.mocked(link.listReservationsPartnerBooth).mockRejectedValue(new ApiError(404, "not_found"));
+    renderAt("/p/tok/booths/99");
+    await screen.findByText("이 부스는 더 이상 이 운영 단체에 배정되어 있지 않아요.", {}, T);
+    structure();
+  });
+  it("/p/:token/booths/:id 서버 오류", async () => {
+    vi.mocked(link.getPartnerBooth).mockRejectedValue(new ApiError(500, "server_error"));
+    vi.mocked(link.listReservationsPartnerBooth).mockRejectedValue(new ApiError(500, "server_error"));
+    renderAt("/p/tok/booths/12");
+    await screen.findByRole("alert", {}, T);
+    structure();
+  });
+});
