@@ -51,6 +51,7 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
     onSuccess: (res, m) => {
       setResetting(null);
       setIssued({ username: m.username, password: res.temp_password });
+      void refresh(); // 서버가 비밀번호 변경 필요로 바꿨으므로 상태 칸도 새로 받는다.
     },
     onError: (err) => {
       setResetting(null);
@@ -63,6 +64,9 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
     onSuccess: () => void refresh(),
     onError: (err) => setRowError(messageFor(err)),
   });
+
+  // 발급·초기화 중에는 서로의 버튼을 잠가 두 요청이 겹치지 않는다. 그래서 임시 비밀번호가 보일 때는 진행 중인 요청이 없고 둘 다 비워도 안전하다.
+  const working = create.isPending || reset.isPending;
 
   function closeIssued() {
     setIssued(null);
@@ -108,6 +112,7 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
             <Button
               variant="secondary"
               aria-label={`${m.username} 비밀번호 초기화`}
+              disabled={working}
               onClick={() => {
                 setRowError(null);
                 setResetting(m);
@@ -144,7 +149,7 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
             required
           />
         </div>
-        <Button type="submit" loading={create.isPending}>
+        <Button type="submit" loading={create.isPending} disabled={working}>
           계정 발급
         </Button>
       </form>
@@ -174,9 +179,11 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
         danger
         busy={reset.isPending}
         onConfirm={() => resetting && reset.mutate(resetting)}
-        onCancel={() => setResetting(null)}
+        onCancel={() => {
+          if (!reset.isPending) setResetting(null); // 이미 보낸 요청은 취소되지 않는다.
+        }}
       />
-      {issued && <TempPasswordDialog username={issued.username} password={issued.password} onClose={closeIssued} />}
+      {issued && <TempPasswordDialog key={issued.password} username={issued.username} password={issued.password} onClose={closeIssued} />}
     </div>
   );
 }

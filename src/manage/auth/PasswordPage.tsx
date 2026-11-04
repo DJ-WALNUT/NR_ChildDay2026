@@ -30,6 +30,7 @@ export default function PasswordPage() {
         )}
         <PasswordForm
           notice={logoutError}
+          onAttempt={() => setLogoutError(null)}
           onDone={async () => {
             await refresh(); // must_change_password 가 풀린 계정 정보를 다시 받는다.
             navigate("/manage", { replace: true });

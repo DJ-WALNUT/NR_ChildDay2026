@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { updateMember } from "../../api/admin";
+import { useQueryClient } from "@tanstack/react-query";
+import { adminKeys, updateMember } from "../../api/admin";
 import { fieldErrors, messageFor } from "../../api/messages";
 import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { Button, Notice, TextField } from "../../ui";
@@ -9,6 +10,7 @@ import { PasswordForm } from "../auth/PasswordForm";
 export default function AccountPage() {
   useDocumentTitle("내 계정");
   const { user, refresh } = useAuth();
+  const qc = useQueryClient();
   const [name, setName] = useState(user?.display_name ?? "");
   const [nameError, setNameError] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export default function AccountPage() {
     try {
       await updateMember(user.id, { display_name: name.trim() });
       await refresh();
+      if (user.org_id !== null) await qc.invalidateQueries({ queryKey: adminKeys.members(user.org_id) });
       setSaved(true);
     } catch (err) {
       const fields = fieldErrors(err);
@@ -62,7 +65,7 @@ export default function AccountPage() {
           비밀번호 변경
         </h2>
         {passwordDone && <Notice tone="info">비밀번호를 바꿨어요.</Notice>}
-        <PasswordForm onDone={() => setPasswordDone(true)} />
+        <PasswordForm onAttempt={() => setPasswordDone(false)} onDone={() => setPasswordDone(true)} />
       </section>
     </div>
   );

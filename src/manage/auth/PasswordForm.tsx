@@ -4,8 +4,10 @@ import { fieldErrors, messageFor } from "../../api/messages";
 import { Button, Notice, TextField } from "../../ui";
 
 /** 비밀번호 변경 폼. 바꾸는 데 성공하면 onDone 을 부른다. actions 는 제출 버튼 옆에 둘 버튼. */
-export function PasswordForm({ onDone, actions, notice }: {
+export function PasswordForm({ onDone, onAttempt, actions, notice }: {
   onDone: () => void | Promise<void>;
+  /** 제출을 시작할 때 부른다. 화면이 들고 있는 이전 결과 문구를 지울 때 쓴다. */
+  onAttempt?: () => void;
   actions?: ReactNode;
   /** 폼 위에 보일 오류 문구(예: 로그아웃 실패). */
   notice?: string | null;
@@ -20,6 +22,7 @@ export function PasswordForm({ onDone, actions, notice }: {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setGeneral(null);
+    onAttempt?.();
     if (next !== confirm) {
       setErrors({ confirm: "새 비밀번호가 서로 달라요." });
       return;
@@ -41,10 +44,10 @@ export function PasswordForm({ onDone, actions, notice }: {
     }
   }
 
-  const message = general ?? notice;
   return (
     <form onSubmit={submit} className="space-y-4">
-      {message && <Notice tone="error">{message}</Notice>}
+      {general && <Notice tone="error">{general}</Notice>}
+      {notice && <Notice tone="error">{notice}</Notice>}
       <TextField
         label="현재 비밀번호"
         type="password"

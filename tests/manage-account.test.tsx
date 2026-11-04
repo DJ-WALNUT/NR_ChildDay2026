@@ -88,7 +88,7 @@ beforeEach(() => {
 describe("내 계정", () => {
   it("표시 이름을 저장하고 계정 정보를 다시 받는다", async () => {
     vi.mocked(admin.updateMember).mockResolvedValue(member(7));
-    renderAccount();
+    const { spy } = renderAccount();
     const u = userEvent.setup();
     const name = await screen.findByLabelText("표시 이름");
     expect(name).toHaveValue("담당자");
@@ -98,6 +98,7 @@ describe("내 계정", () => {
     await u.click(screen.getByRole("button", { name: "이름 저장" }));
     await waitFor(() => expect(admin.updateMember).toHaveBeenCalledWith(7, { display_name: "새 이름" }));
     await waitFor(() => expect(vi.mocked(admin.getMe).mock.calls.length).toBeGreaterThan(before));
+    await waitFor(() => expect(keysOf(spy)).toContain(JSON.stringify(adminKeys.members(1))));
   });
 
   it("표시 이름 422 는 입력란에 보인다", async () => {
@@ -119,6 +120,14 @@ describe("내 계정", () => {
     await waitFor(() => expect(admin.changePassword).toHaveBeenCalledWith("oldpass12", "newpass123"));
     expect(await screen.findByText("비밀번호를 바꿨어요.")).toBeInTheDocument();
     expect(screen.getByLabelText("현재 비밀번호")).toHaveValue("");
+
+    vi.mocked(admin.changePassword).mockRejectedValue(new ApiError(422, "invalid", { current: "맞지 않아요." }));
+    await u.type(screen.getByLabelText("현재 비밀번호"), "x");
+    await u.type(screen.getByLabelText("새 비밀번호"), "newpass456");
+    await u.type(screen.getByLabelText("새 비밀번호 확인"), "newpass456");
+    await u.click(screen.getByRole("button", { name: "비밀번호 바꾸기" }));
+    expect(await screen.findByText("맞지 않아요.")).toBeInTheDocument();
+    expect(screen.queryByText("비밀번호를 바꿨어요.")).not.toBeInTheDocument();
   });
 });
 
@@ -243,9 +252,9 @@ describe("계정 발급", () => {
 });
 
 describe("비밀번호 초기화", () => {
-  it("확인 대화상자에서 세션이 끊긴다고 알리고, 확인하면 임시 비밀번호를 보인다", async () => {
+  it("확인 대화상자에서 세션이 끊긴다고 알리고, 확인하면 임시 비밀번호를 보이고 목록을 다시 받는다", async () => {
     vi.mocked(admin.resetMemberPassword).mockResolvedValue({ temp_password: TEMP });
-    const { queryClient } = renderPanel();
+    const { queryClient, spy } = renderPanel();
     const u = userEvent.setup();
     await u.click(await screen.findByRole("button", { name: "helper 비밀번호 초기화" }));
     const confirm = screen.getByRole("dialog");
@@ -255,7 +264,54 @@ describe("비밀번호 초기화", () => {
     await waitFor(() => expect(admin.resetMemberPassword).toHaveBeenCalledWith(8));
     const dialog = await screen.findByRole("dialog", { name: /임시 비밀번호/ });
     expect(within(dialog).getByLabelText("임시 비밀번호")).toHaveValue(TEMP);
+    expect(keysOf(spy)).toContain(JSON.stringify(adminKeys.members(1)));
     await u.click(within(dialog).getByRole("button", { name: "닫기" }));
     expect(JSON.stringify(queryClient.getQueryCache().getAll().map((q) => q.state.data))).not.toContain(TEMP);
+    expect(JSON.stringify(queryClient.getMutationCache().getAll().map((m) => m.state.data))).not.toContain(TEMP);
+  });
+
+  it("요청 중에는 취소해도 대화상자가 그대로이고, 결과는 하나의 임시 비밀번호 대화상자로만 나온다", async () => {
+    let finish!: (v: { temp_password: string }) => void;
+    vi.mocked(admin.resetMemberPassword).mockReturnValue(new Promise((r) => (finish = r)));
+    renderPanel();
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("button", { name: "helper 비밀번호 초기화" }));
+    await u.click(within(screen.getByRole("dialog")).getByRole("button", { name: "초기화" }));
+    await waitFor(() => expect(admin.resetMemberPassword).toHaveBeenCalled());
+    await u.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.getByRole("dialog", { name: "비밀번호 초기화" })).toBeInTheDocument();
+    finish({ temp_password: TEMP });
+    const dialog = await screen.findByRole("dialog", { name: /임시 비밀번호/ });
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(within(dialog).getByLabelText("임시 비밀번호")).toHaveValue(TEMP);
+  });
+});
+
+describe("처리 중 잠금", () => {
+  it("발급 중에는 발급 버튼과 행의 초기화 버튼이 잠긴다", async () => {
+    let finish!: (v: { user: Member; temp_password: string }) => void;
+    vi.mocked(admin.createMember).mockReturnValue(new Promise((r) => (finish = r)));
+    renderPanel();
+    const u = userEvent.setup();
+    await screen.findByText("helper");
+    await u.type(screen.getByLabelText("아이디"), "newbie");
+    await u.type(screen.getByLabelText("표시 이름"), "새 담당");
+    await u.click(screen.getByRole("button", { name: "계정 발급" }));
+    await waitFor(() => expect(admin.createMember).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "helper 비밀번호 초기화" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "계정 발급" })).toBeDisabled();
+    finish({ user: member(10), temp_password: TEMP });
+    expect(await screen.findByRole("dialog", { name: /임시 비밀번호/ })).toBeInTheDocument();
+  });
+
+  it("초기화 중에는 발급 버튼이 잠긴다", async () => {
+    vi.mocked(admin.resetMemberPassword).mockReturnValue(new Promise(() => {}));
+    renderPanel();
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("button", { name: "helper 비밀번호 초기화" }));
+    await u.click(within(screen.getByRole("dialog")).getByRole("button", { name: "초기화" }));
+    await waitFor(() => expect(admin.resetMemberPassword).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "계정 발급" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "old 비밀번호 초기화" })).toBeDisabled();
   });
 });
