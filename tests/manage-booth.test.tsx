@@ -94,7 +94,7 @@ function renderAt(path: string) {
     </QueryClientProvider>,
   );
   const keys = () => spy.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey));
-  return { router, keys, unmount: view.unmount };
+  return { router, keys, queryClient, unmount: view.unmount };
 }
 
 beforeEach(() => {
@@ -218,13 +218,22 @@ describe("부스 상세", () => {
     vi.mocked(admin.getBooth)
       .mockResolvedValueOnce(detail(booth()))
       .mockResolvedValue(detail(booth({ manage_token: "tok2" })));
-    renderAt("/manage/booths/5");
+    const { keys } = renderAt("/manage/booths/5");
     const user = userEvent.setup();
     expect(await screen.findByTestId("qr")).toHaveTextContent("/b/tok1");
     await user.click(await screen.findByRole("button", { name: "링크 재발급" }));
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "재발급" }));
     await waitFor(() => expect(admin.rotateBoothToken).toHaveBeenCalledWith(5));
     await waitFor(() => expect(screen.getByTestId("qr")).toHaveTextContent("/b/tok2"));
+    expect(keys()).toEqual(
+      expect.arrayContaining([
+        JSON.stringify(["admin", "booth", 5]),
+        JSON.stringify(["admin", "booths", 10]),
+        JSON.stringify(["admin", "event", 10]),
+        JSON.stringify(["admin", "partners", 10]),
+        JSON.stringify(["admin", "overview", 1]),
+      ]),
+    );
   });
 
   it("삭제: 부스 이름을 입력해야 열리고 성공하면 행사로 이동한다", async () => {
@@ -239,5 +248,49 @@ describe("부스 상세", () => {
     await user.click(confirm);
     await waitFor(() => expect(admin.deleteBooth).toHaveBeenCalledWith(5));
     await waitFor(() => expect(router.state.location.pathname).toBe("/manage/events/10"));
+  });
+
+  it("행사 목록을 못 받으면 오류와 다시 시도를 보이고 이동 선택은 잠긴다", async () => {
+    vi.mocked(admin.listEvents).mockRejectedValueOnce(new ApiError(500, "server_error"));
+    renderAt("/manage/booths/5");
+    const user = userEvent.setup();
+    const retry = await screen.findByRole("button", { name: "다시 시도" });
+    expect(screen.getByLabelText("이동할 행사")).toBeDisabled();
+    await user.click(retry);
+    await waitFor(() => expect(screen.getByLabelText("이동할 행사")).toBeEnabled());
+  });
+
+  it("운영 단체 목록을 못 받으면 오류와 다시 시도를 보이고 배정 선택은 잠긴다", async () => {
+    vi.mocked(admin.listPartners).mockRejectedValueOnce(new ApiError(500, "server_error"));
+    renderAt("/manage/booths/5");
+    const user = userEvent.setup();
+    const retry = await screen.findByRole("button", { name: "다시 시도" });
+    expect(screen.getByLabelText("운영 단체")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "운영 단체 배정" })).toBeDisabled();
+    await user.click(retry);
+    await waitFor(() => expect(screen.getByLabelText("운영 단체")).toBeEnabled());
+  });
+
+  it("배정이 422 면 서버의 필드 문구를 보인다", async () => {
+    vi.mocked(admin.updateBooth).mockRejectedValue(new ApiError(422, "invalid", { partner_id: "다른 행사의 단체예요." }));
+    renderAt("/manage/booths/5");
+    const user = userEvent.setup();
+    await screen.findByRole("option", { name: "청년부" });
+    await user.selectOptions(screen.getByLabelText("운영 단체"), "청년부");
+    await user.click(screen.getByRole("button", { name: "운영 단체 배정" }));
+    expect(await screen.findByText("다른 행사의 단체예요.")).toBeInTheDocument();
+  });
+
+  it("삭제 뒤에는 기록을 대체해 이동하고 지운 부스 캐시를 비운다", async () => {
+    vi.mocked(admin.deleteBooth).mockResolvedValue(undefined);
+    const { router, queryClient } = renderAt("/manage/booths/5");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "부스 삭제" }));
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByRole("textbox"), "농구 부스");
+    await user.click(within(dialog).getByRole("button", { name: "삭제" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/manage/events/10"));
+    expect(router.state.historyAction).toBe("REPLACE");
+    expect(queryClient.getQueryData(["admin", "booth", 5])).toBeUndefined();
   });
 });

@@ -2,12 +2,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminKeys, deleteBooth, listEvents, listPartners, rotateBoothToken, updateBooth } from "../../api/admin";
-import { messageFor } from "../../api/messages";
+import { fieldErrors, messageFor } from "../../api/messages";
 import type { Booth } from "../../api/types";
 import type { BoothSource } from "../../booth/BoothSource";
 import { Button, ConfirmDialog, Notice, SelectField } from "../../ui";
 
 const NONE = "";
+
+/** 422 면 서버의 필드 문구를 먼저 보인다. */
+const serverMessage = (err: unknown) => Object.values(fieldErrors(err))[0] ?? messageFor(err);
 
 /** 소유 기관(또는 슈퍼관리자)만 보는 부스 동작: 행사 이동, 운영 단체 배정, 링크 재발급, 삭제. */
 export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSource }) {
@@ -48,7 +51,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
     },
     onError: (err) => {
       setMoving(false);
-      setError(messageFor(err));
+      setError(serverMessage(err));
     },
   });
 
@@ -59,7 +62,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
       setPartnerSel(null);
       await Promise.all([qc.invalidateQueries({ queryKey: source.key }), refreshAround([booth.event_id])]);
     },
-    onError: (err) => setError(messageFor(err)),
+    onError: (err) => setError(serverMessage(err)),
   });
 
   const rotate = useMutation({
@@ -67,7 +70,8 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
     onMutate: () => setError(null),
     onSuccess: async () => {
       setRotating(false);
-      await qc.invalidateQueries({ queryKey: source.key });
+      // 행사 링크 탭의 QR·엑셀이 폐기된 링크를 쓰지 않도록 목록도 맞춘다.
+      await Promise.all([qc.invalidateQueries({ queryKey: source.key }), refreshAround([booth.event_id])]);
     },
     onError: (err) => {
       setRotating(false);
@@ -82,7 +86,8 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
       setDeleting(false);
       // 지운 부스의 콘솔 쿼리는 다시 받지 않는다(404). 목록·요약만 맞춘다.
       await refreshAround([booth.event_id]);
-      navigate(`/manage/events/${booth.event_id}`);
+      navigate(`/manage/events/${booth.event_id}`, { replace: true });
+      qc.removeQueries({ queryKey: source.key });
     },
     onError: (err) => {
       setDeleting(false);
@@ -90,6 +95,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
     },
   });
 
+  const failed = [eventsQ, partnersQ].find((q) => q.isError);
   const targetEvent = others.find((e) => String(e.id) === target);
 
   return (
@@ -98,6 +104,11 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
         부스 관리 도구
       </h2>
       {error && <Notice tone="error">{error}</Notice>}
+      {failed && (
+        <Notice tone="error" action={{ label: "다시 시도", onClick: () => void failed.refetch() }}>
+          {messageFor(failed.error)}
+        </Notice>
+      )}
 
       <div className="space-y-2">
         {eventsQ.isSuccess && others.length === 0 ? (
@@ -107,14 +118,14 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
             label="이동할 행사"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
-            disabled={eventsQ.isPending}
+            disabled={!eventsQ.isSuccess}
             options={[
               { value: NONE, label: "행사를 골라 주세요" },
               ...others.map((e) => ({ value: String(e.id), label: e.name })),
             ]}
           />
         )}
-        <Button variant="secondary" disabled={target === NONE} onClick={() => setMoving(true)}>
+        <Button variant="secondary" disabled={!targetEvent} onClick={() => setMoving(true)}>
           행사 이동
         </Button>
       </div>
@@ -124,7 +135,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
           label="운영 단체"
           value={partnerValue}
           onChange={(e) => setPartnerSel(e.target.value)}
-          disabled={partnersQ.isPending}
+          disabled={!partnersQ.isSuccess}
           options={[
             { value: NONE, label: "미배정" },
             ...(partnersQ.data ?? []).map((p) => ({ value: String(p.id), label: p.name })),
@@ -133,7 +144,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
         <Button
           variant="secondary"
           loading={assign.isPending}
-          disabled={partnerValue === (booth.partner_id === null ? NONE : String(booth.partner_id))}
+          disabled={!partnersQ.isSuccess || partnerValue === (booth.partner_id === null ? NONE : String(booth.partner_id))}
           onClick={() => assign.mutate(partnerValue === NONE ? null : Number(partnerValue))}
         >
           운영 단체 배정
