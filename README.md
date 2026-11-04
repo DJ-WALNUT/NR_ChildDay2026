@@ -17,6 +17,18 @@ VITE_API_TARGET=http://localhost:5000
 
 검사: `npm test`, `npm run typecheck`, `npm run lint`.
 
+## 관리자 화면 실행
+
+관리자 화면은 `/manage` 에 있고 계정은 화면에서 발급해요(시드에는 계정이 없어요). 백엔드 저장소(`NR_ChildDay2026-BE`)에서:
+
+```
+python scripts/seed_demo.py --out <DATA_DIR>/app.db
+DATA_DIR=<DATA_DIR> flask --app wsgi.py create-superadmin --username root --password <임시값>
+SESSION_COOKIE_SECURE=0 CORS_ORIGINS=http://localhost:5173 TRUSTED_PROXY_HOPS=0 DATA_DIR=<DATA_DIR> flask --app wsgi.py run -p 5005
+```
+
+프런트엔드에서 `VITE_API_TARGET=http://localhost:5005 npm run dev` 를 실행하고 `http://localhost:5173/manage` 로 들어가 `root` 로 로그인해요. 기관 목록의 "계정 관리"에서 기관 계정을 발급하면 임시 비밀번호가 한 번 보여요. 그 계정으로 처음 로그인하면 비밀번호를 바꿔야 해요. 슈퍼관리자는 기관 목록의 "행사 보기"로 모든 기관의 행사를 열 수 있어요. 실제 동작 확인 기록은 `docs/verification/2c/README.md` 에 있어요.
+
 ## 빌드
 
 ```
