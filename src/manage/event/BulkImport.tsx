@@ -47,6 +47,7 @@ export default function BulkImport({ event, onClose }: { event: AdminEvent; onCl
 
   async function pick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = ""; // 같은 파일을 다시 고를 수 있게 비운다.
     if (!file) return;
     setServerProblems([]);
     setError(null);

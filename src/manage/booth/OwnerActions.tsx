@@ -167,7 +167,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
         confirmLabel="이동"
         busy={move.isPending}
         onConfirm={() => targetEvent && move.mutate(targetEvent.id)}
-        onCancel={() => !move.isPending && setMoving(false)}
+        onCancel={() => setMoving(false)}
       />
       <ConfirmDialog
         open={rotating}
@@ -177,7 +177,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
         danger
         busy={rotate.isPending}
         onConfirm={() => rotate.mutate()}
-        onCancel={() => !rotate.isPending && setRotating(false)}
+        onCancel={() => setRotating(false)}
       />
       <ConfirmDialog
         open={deleting}
@@ -188,7 +188,7 @@ export function OwnerActions({ booth, source }: { booth: Booth; source: BoothSou
         requireText={booth.name}
         busy={remove.isPending}
         onConfirm={() => remove.mutate()}
-        onCancel={() => !remove.isPending && setDeleting(false)}
+        onCancel={() => setDeleting(false)}
       />
     </section>
   );

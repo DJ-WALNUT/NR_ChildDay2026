@@ -11,7 +11,7 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   requireText?: string;
-  /** 처리 중: 확인 버튼을 잠그고 스피너를 보여줘요. */
+  /** 처리 중: 확인 버튼을 잠그고 스피너를 보여줘요. 이미 보낸 요청은 되돌릴 수 없어 취소 버튼과 Esc 도 막아요. */
   busy?: boolean;
 }
 
@@ -22,9 +22,12 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
   const input = useRef<HTMLInputElement>(null);
   const [typed, setTyped] = useState("");
   const ready = !requireText || typed === requireText;
+  const cancel = () => {
+    if (!busy) onCancel();
+  };
 
   return (
-    <Modal title={title} describedBy={bodyId} onClose={onCancel} initialFocus={requireText ? input : cancelBtn}>
+    <Modal title={title} describedBy={bodyId} onClose={cancel} initialFocus={requireText ? input : cancelBtn}>
       <p id={bodyId} className="mt-2 text-15">
         {body}
       </p>
@@ -51,7 +54,7 @@ function Inner({ title, body, confirmLabel, danger, onConfirm, onCancel, require
         </div>
       )}
       <div className="mt-5 flex justify-end gap-2">
-        <Button ref={cancelBtn} variant="secondary" onClick={onCancel}>
+        <Button ref={cancelBtn} variant="secondary" disabled={busy} onClick={cancel}>
           취소
         </Button>
         <Button variant={danger ? "danger" : "primary"} loading={busy} disabled={!ready} onClick={onConfirm}>

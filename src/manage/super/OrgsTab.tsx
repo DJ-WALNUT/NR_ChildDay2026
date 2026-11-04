@@ -126,6 +126,7 @@ export default function OrgsTab() {
     body = (
       <DataTable
         caption="기관 목록"
+        scrollHint
         columns={columns}
         rows={q.data}
         rowKey={(o) => String(o.id)}

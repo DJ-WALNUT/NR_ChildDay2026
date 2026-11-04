@@ -5,6 +5,7 @@ import { adminKeys, batchBoothStatus, createBooth, listBooths } from "../../api/
 import { fieldErrors, messageFor } from "../../api/messages";
 import type { Booth } from "../../api/types";
 import { Button, DataTable, EmptyState, Notice, Spinner, Stamp, TextField, type Column } from "../../ui";
+import { RefetchNotice } from "../RefetchNotice";
 import BulkImport from "./BulkImport";
 import type { EventTabProps } from "./EventPage";
 
@@ -91,7 +92,16 @@ export default function BoothsTab({ event, org }: EventTabProps) {
       ),
     },
     { key: "no", header: "번호", numeric: true, render: (b) => String(booths.indexOf(b) + 1).padStart(2, "0") },
-    { key: "name", header: "이름", wrap: true, render: (b) => <span className="font-bold">{b.name}</span> },
+    {
+      key: "name",
+      header: "이름",
+      wrap: true,
+      render: (b) => (
+        <Link to={`/manage/booths/${b.id}`} className="inline-flex min-h-11 items-center font-bold underline">
+          {b.name}
+        </Link>
+      ),
+    },
     { key: "mode", header: "방식", render: (b) => MODE[b.mode] },
     { key: "count", header: "신청 수", numeric: true, render: (b) => b.count },
     { key: "status", header: "상태", render: (b) => <Stamp kind={b.is_active ? "live" : "closed"} /> },
@@ -111,7 +121,7 @@ export default function BoothsTab({ event, org }: EventTabProps) {
   ];
 
   if (q.isPending) return <Spinner />;
-  if (q.isError) {
+  if (q.isError && !q.data) {
     return (
       <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
         {messageFor(q.error)}
@@ -121,6 +131,7 @@ export default function BoothsTab({ event, org }: EventTabProps) {
 
   return (
     <div className="space-y-6">
+      <RefetchNotice queries={[q]} />
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-15 tabular-nums">{selected.length}개 선택</span>
@@ -138,6 +149,7 @@ export default function BoothsTab({ event, org }: EventTabProps) {
         {batchError && <Notice tone="error">{batchError}</Notice>}
         <DataTable
           caption="부스 목록"
+          scrollHint
           columns={columns}
           rows={booths}
           rowKey={(b) => String(b.id)}

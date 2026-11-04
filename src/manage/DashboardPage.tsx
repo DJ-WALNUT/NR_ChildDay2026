@@ -7,6 +7,7 @@ import type { Booth, Overview } from "../api/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { Button, DataTable, EmptyState, Notice, Spinner, TextField, type Column } from "../ui";
 import { useOrg } from "./auth/guards";
+import { RefetchNotice } from "./RefetchNotice";
 
 const running = (booths: Booth[]) => booths.filter((b) => b.is_active).length;
 
@@ -31,9 +32,8 @@ const OWNED_COLUMNS: Column<Owned>[] = [
   },
 ];
 
+// 이 표로 들어갈 곳은 부스다. 좁은 화면에서 밀지 않아도 보이게 첫 칸에 둔다.
 const LINKED_COLUMNS: Column<Linked>[] = [
-  { key: "event", header: "행사", wrap: true, render: (r) => r.event.name },
-  { key: "who", header: "주최 기관 · 운영 단체", wrap: true, render: (r) => `${r.host.name} · ${r.partner.name}` },
   {
     key: "booths",
     header: "부스", wrap: true,
@@ -47,6 +47,17 @@ const LINKED_COLUMNS: Column<Linked>[] = [
           </li>
         ))}
       </ul>
+    ),
+  },
+  {
+    key: "event",
+    header: "행사",
+    wrap: true,
+    render: (r) => (
+      <>
+        <span className="block">{r.event.name}</span>
+        <span className="block text-13 text-muted">{`${r.host.name} · ${r.partner.name}`}</span>
+      </>
     ),
   },
 ];
@@ -100,7 +111,7 @@ export function DashboardBody({ orgId, title = "대시보드" }: { orgId: number
   let body;
   if (q.isPending) {
     body = <Spinner />;
-  } else if (q.isError) {
+  } else if (q.isError && !q.data) {
     body = (
       <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
         {messageFor(q.error)}
@@ -117,6 +128,7 @@ export function DashboardBody({ orgId, title = "대시보드" }: { orgId: number
     body = (
       <>
         <p className="text-13 text-muted">{org.name}</p>
+        <RefetchNotice queries={[q]} />
         <dl className="flex flex-wrap gap-x-8 gap-y-2 border-y border-rule-2 py-3">
           {totalItems.map(([label, value]) => (
             <div key={label} className="flex items-baseline gap-2">

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ vi.mock("../src/api/admin", async (orig) => ({
   getOverview: vi.fn(),
   createEvent: vi.fn(),
   listMembers: vi.fn(),
+  resetMemberPassword: vi.fn(),
   listSuperOrgs: vi.fn(),
   createSuperOrg: vi.fn(),
   updateSuperOrg: vi.fn(),
@@ -63,7 +64,7 @@ function renderAt(path: string) {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return { spy, router };
+  return { spy, router, queryClient };
 }
 const keysOf = (spy: ReturnType<typeof renderAt>["spy"]) => spy.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey));
 
@@ -90,6 +91,12 @@ describe("기관 목록", () => {
     const off = within(table).getByRole("row", { name: /쉬는기관/ });
     expect(within(off).getByText("비활성")).toBeInTheDocument();
     expect(within(off).getByRole("link", { name: /행사 보기/ })).toHaveAttribute("href", "/manage/super/orgs/3");
+  });
+
+  it("표에 좁은 화면 안내가 있다", async () => {
+    renderAt("/manage/super");
+    await screen.findByRole("region", { name: "기관 목록" });
+    expect(screen.getByText("옆으로 밀면 더 있어요")).toBeInTheDocument();
   });
 
   it("기관을 만들고 목록을 무효화한다", async () => {
@@ -198,6 +205,25 @@ describe("기관별 화면", () => {
     expect(screen.getByRole("button", { name: "staff 비밀번호 초기화" })).toBeInTheDocument();
     expect(admin.listMembers).toHaveBeenCalledWith(2);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("기관 목록 재조회가 실패해도 표시 중인 임시 비밀번호를 잃지 않는다", async () => {
+    vi.mocked(admin.resetMemberPassword).mockResolvedValue({ temp_password: "temp-1234" });
+    const { queryClient } = renderAt("/manage/super/orgs/2/members");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "staff 비밀번호 초기화" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "초기화" }));
+    expect(await screen.findByDisplayValue("temp-1234")).toBeInTheDocument();
+    vi.mocked(admin.listSuperOrgs).mockRejectedValue(new ApiError(500, "server"));
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.superOrgs() }));
+    expect(await screen.findByText(/최신 정보를 받지 못했어요/)).toBeInTheDocument();
+    expect(screen.getByDisplayValue("temp-1234")).toBeInTheDocument();
+  });
+
+  it("기관별 계정: 표에 좁은 화면 안내가 있다", async () => {
+    renderAt("/manage/super/orgs/2/members");
+    await screen.findByRole("region", { name: "기관 계정 목록" });
+    expect(screen.getByText("옆으로 밀면 더 있어요")).toBeInTheDocument();
   });
 
   it("기관별 계정: 없는 기관은 NotFound", async () => {

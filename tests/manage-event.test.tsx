@@ -1,8 +1,9 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "../src/api/client";
+import { adminKeys } from "../src/api/admin";
 import type { AdminEvent, Booth, MeResponse, Overview, SessionOrg, SessionUser } from "../src/api/types";
 import { routes } from "../src/routes";
 
@@ -154,6 +155,27 @@ describe("대시보드", () => {
   });
 });
 
+describe("대시보드 재조회·좁은 화면", () => {
+  it("재조회가 실패해도 표를 내리지 않고 경고를 보인다", async () => {
+    const { queryClient } = renderAt("/manage");
+    const table = await screen.findByRole("region", { name: "내 행사" });
+    vi.mocked(admin.getOverview).mockRejectedValue(new ApiError(500, "server"));
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.overview(1) }));
+    expect(await screen.findByText(/최신 정보를 받지 못했어요/)).toBeInTheDocument();
+    expect(table).toBeInTheDocument();
+  });
+
+  it("연합 행사 표의 첫 칸이 부스 링크라 390px 에서도 스크롤 없이 보인다", async () => {
+    renderAt("/manage");
+    const linked = await screen.findByRole("region", { name: "참가한 연합 행사" });
+    const firstCell = within(within(linked).getAllByRole("row")[1]).getAllByRole("cell")[0];
+    expect(within(firstCell).getByRole("link", { name: "농구 부스" })).toHaveAttribute("href", "/manage/booths/30");
+    expect(within(linked).getByText("연합 체육대회")).toBeInTheDocument();
+    expect(within(linked).getByText("은혜교회 · 청년부")).toBeInTheDocument();
+    expect(within(linked).getAllByRole("columnheader")).toHaveLength(2);
+  });
+});
+
 describe("관리자 메뉴", () => {
   it("기관 계정과 슈퍼관리자의 메뉴가 다르다", async () => {
     renderAt("/manage");
@@ -245,6 +267,24 @@ describe("행사 화면", () => {
     expect(await screen.findByRole("heading", { name: "찾을 수 없어요" })).toBeInTheDocument();
   });
 
+  it("재조회가 실패해도 탭을 내리지 않고 경고를 보인다", async () => {
+    const { queryClient } = renderAt("/manage/events/10");
+    const table = await screen.findByRole("region", { name: "부스 목록" });
+    vi.mocked(admin.getEvent).mockRejectedValue(new ApiError(500, "server"));
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.event(10) }));
+    expect(await screen.findByText(/최신 정보를 받지 못했어요/)).toBeInTheDocument();
+    expect(table).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "가을 축제" })).toBeInTheDocument();
+  });
+
+  it("재조회가 404 면 데이터가 있어도 찾을 수 없어요", async () => {
+    const { queryClient } = renderAt("/manage/events/10");
+    await screen.findByRole("heading", { name: "가을 축제" });
+    vi.mocked(admin.getEvent).mockRejectedValue(new ApiError(404, "not_found"));
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.event(10) }));
+    expect(await screen.findByText("찾을 수 없어요")).toBeInTheDocument();
+  });
+
   it("슈퍼관리자도 열 수 있고 소유 기관으로 돌아간다", async () => {
     vi.mocked(admin.getMe).mockResolvedValue(SUPER);
     vi.mocked(admin.getEvent).mockResolvedValue({ event: EVENT, org: { ...ORG, id: 5, name: "다른교회" } });
@@ -270,6 +310,30 @@ describe("부스 탭", () => {
     expect(first.getByRole("link", { name: "부스1 상세" })).toHaveAttribute("href", "/manage/booths/1");
     expect(within(rows[2]).getByText("마감")).toBeInTheDocument();
     expect(within(rows[3]).getByText("선착순")).toBeInTheDocument();
+  });
+
+  it("부스 이름이 상세 화면 링크다", async () => {
+    renderAt("/manage/events/10");
+    const table = await screen.findByRole("region", { name: "부스 목록" });
+    expect(within(table).getByRole("link", { name: "부스1" })).toHaveAttribute("href", "/manage/booths/1");
+  });
+
+  it("좁은 화면 안내를 켠다", async () => {
+    renderAt("/manage/events/10");
+    await screen.findByRole("region", { name: "부스 목록" });
+    expect(screen.getByText("옆으로 밀면 더 있어요")).toBeInTheDocument();
+  });
+
+  it("재조회가 실패해도 일괄 등록 창과 표를 내리지 않는다", async () => {
+    const { queryClient } = renderAt("/manage/events/10");
+    const table = await screen.findByRole("region", { name: "부스 목록" });
+    await userEvent.setup().click(screen.getByRole("button", { name: "엑셀로 일괄 등록" }));
+    const dialog = screen.getByRole("dialog", { name: "엑셀로 부스 등록" });
+    vi.mocked(admin.listBooths).mockRejectedValue(new ApiError(500, "server"));
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.booths(10) }));
+    expect(await screen.findByText(/최신 정보를 받지 못했어요/)).toBeInTheDocument();
+    expect(dialog).toBeInTheDocument();
+    expect(table).toBeInTheDocument();
   });
 
   it("선택한 부스를 일괄로 열고 목록을 다시 받고 선택을 해제한다", async () => {

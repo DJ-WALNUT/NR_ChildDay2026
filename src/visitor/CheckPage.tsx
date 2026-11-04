@@ -215,9 +215,7 @@ export default function CheckPage() {
         danger
         busy={cancelling}
         onConfirm={() => void doCancel()}
-        onCancel={() => {
-          if (!cancelling) setConfirming(false);
-        }}
+        onCancel={() => setConfirming(false)}
       />
     </VisitorFrame>
   );

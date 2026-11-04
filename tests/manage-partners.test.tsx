@@ -1,11 +1,14 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { useState } from "react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "../src/api/client";
+import { adminKeys } from "../src/api/admin";
 import type { AdminEvent, Booth, Partner, SessionOrg } from "../src/api/types";
 
 vi.mock("../src/api/admin", async (orig) => ({
   ...(await orig<typeof import("../src/api/admin")>()),
+  getEvent: vi.fn(),
   listPartners: vi.fn(),
   createPartner: vi.fn(),
   updatePartner: vi.fn(),
@@ -28,11 +31,15 @@ vi.mock("../src/lib/excel", async (orig) => ({
 }));
 vi.mock("../src/lib/download", () => ({ downloadBlob: vi.fn() }));
 vi.mock("../src/booth/StatsPanel", () => ({
-  StatsPanel: (p: { booths: Booth[]; fileName: () => string }) => (
-    <div data-testid="stats">
-      {p.booths.length}:{p.fileName()}
-    </div>
-  ),
+  // 실제 패널처럼 처음 받은 부스로 선택을 정한다.
+  StatsPanel: function StatsPanel(p: { booths: Booth[]; fileName: () => string }) {
+    const [picked] = useState(() => p.booths.map((b) => b.id).join(","));
+    return (
+      <div data-testid="stats" data-picked={picked}>
+        {p.booths.length}:{p.fileName()}
+      </div>
+    );
+  },
 }));
 import * as admin from "../src/api/admin";
 import { downloadBlob } from "../src/lib/download";
@@ -81,7 +88,7 @@ function renderTab(ui: React.ReactElement) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const spy = vi.spyOn(queryClient, "invalidateQueries");
   render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
-  return { spy };
+  return { spy, queryClient };
 }
 const keysOf = (spy: ReturnType<typeof renderTab>["spy"]) => spy.mock.calls.map((c) => JSON.stringify(c[0]?.queryKey));
 
@@ -94,6 +101,38 @@ beforeEach(() => {
     { id: 3, name: "믿음교회" },
   ]);
   vi.mocked(admin.listBooths).mockResolvedValue([booth(1, { partner_id: 5, partner_name: "청년부" }), booth(2)]);
+  vi.mocked(admin.getEvent).mockResolvedValue({ event: EVENT, org: ORG });
+});
+
+describe("재조회 실패", () => {
+  const fail = () => vi.mocked(admin.listBooths).mockRejectedValue(new ApiError(500, "server"));
+
+  it("운영 단체 탭은 표를 내리지 않고 경고를 보인다", async () => {
+    const { queryClient } = renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    const table = await screen.findByRole("region", { name: "운영 단체 목록" });
+    fail();
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.booths(10) }));
+    expect(await screen.findByText(/최신 정보를 받지 못했어요/)).toBeInTheDocument();
+    expect(table).toBeInTheDocument();
+  });
+
+  it("실적 탭은 패널을 내리지 않고 경고를 보인다", async () => {
+    const { queryClient } = renderTab(<StatsTab event={EVENT} org={ORG} />);
+    const panel = await screen.findByTestId("stats");
+    fail();
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.booths(10) }));
+    expect(await screen.findByText(/최신 정보를 받지 못했어요/)).toBeInTheDocument();
+    expect(panel).toBeInTheDocument();
+  });
+
+  it("링크 탭은 버튼을 내리지 않고 경고를 보인다", async () => {
+    const { queryClient } = renderTab(<LinksTab event={EVENT} org={ORG} />);
+    const zip = await screen.findByRole("button", { name: /QR 묶음/ });
+    fail();
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.booths(10) }));
+    expect(await screen.findByText(/최신 정보를 받지 못했어요/)).toBeInTheDocument();
+    expect(zip).toBeInTheDocument();
+  });
 });
 
 describe("운영 단체 탭", () => {
@@ -143,6 +182,39 @@ describe("운영 단체 탭", () => {
     await waitFor(() => expect(admin.updatePartner).toHaveBeenCalledWith(5, { name: "청년 1부", linked_org_id: null }));
   });
 
+  it("이름만 바꾸면 linked_org_id 를 보내지 않는다(비활성 연결 기관)", async () => {
+    vi.mocked(admin.updatePartner).mockResolvedValue(PARTNER);
+    vi.mocked(admin.listLinkTargets).mockResolvedValue([{ id: 3, name: "믿음교회" }]); // 사랑교회는 비활성이라 목록에 없다
+    renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    await screen.findByText(`${window.location.origin}/p/ptok`);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "청년부 수정" }));
+    const dialog = screen.getByRole("dialog");
+    const name = within(dialog).getByLabelText("단체 이름");
+    await user.clear(name);
+    await user.type(name, "청년 1부");
+    await user.click(within(dialog).getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(admin.updatePartner).toHaveBeenCalledWith(5, { name: "청년 1부" }));
+  });
+
+  it("연결 기관을 바꾸면 새 id 를 보낸다", async () => {
+    vi.mocked(admin.updatePartner).mockResolvedValue(PARTNER);
+    renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    await screen.findByText(`${window.location.origin}/p/ptok`);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "청년부 수정" }));
+    const dialog = screen.getByRole("dialog");
+    await user.selectOptions(within(dialog).getByLabelText("연결 기관"), "믿음교회");
+    await user.click(within(dialog).getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(admin.updatePartner).toHaveBeenCalledWith(5, { name: "청년부", linked_org_id: 3 }));
+  });
+
+  it("표에 좁은 화면 안내가 있다", async () => {
+    renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    await screen.findByRole("region", { name: "운영 단체 목록" });
+    expect(screen.getByText("옆으로 밀면 더 있어요")).toBeInTheDocument();
+  });
+
   it("실적 링크와 QR 내려받기", async () => {
     renderTab(<PartnersTab event={EVENT} org={ORG} />);
     await screen.findByText(`${window.location.origin}/p/ptok`);
@@ -163,6 +235,32 @@ describe("운영 단체 탭", () => {
     expect(admin.rotatePartnerToken).not.toHaveBeenCalled();
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "재발급" }));
     await waitFor(() => expect(admin.rotatePartnerToken).toHaveBeenCalledWith(5));
+  });
+
+  it("재발급하면 화면의 링크가 새 링크로 바뀐다", async () => {
+    vi.mocked(admin.rotatePartnerToken).mockResolvedValue({ access_token: "new" });
+    renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    const old = `${window.location.origin}/p/ptok`;
+    await screen.findByText(old);
+    vi.mocked(admin.listPartners).mockResolvedValue([{ ...PARTNER, access_token: "new" }]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "청년부 링크 재발급" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "재발급" }));
+    expect(await screen.findByText(`${window.location.origin}/p/new`)).toBeInTheDocument();
+    expect(screen.queryByText(old)).toBeNull();
+  });
+
+  it("삭제하면 화면에서 그 단체의 링크가 사라진다", async () => {
+    vi.mocked(admin.deletePartner).mockResolvedValue(undefined);
+    renderTab(<PartnersTab event={EVENT} org={ORG} />);
+    const old = `${window.location.origin}/p/ptok`;
+    await screen.findByText(old);
+    vi.mocked(admin.listPartners).mockResolvedValue([]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "청년부 삭제" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }));
+    expect(await screen.findByText("아직 운영 단체가 없어요")).toBeInTheDocument();
+    expect(screen.queryByText(old)).toBeNull();
   });
 
   it("삭제 대화상자는 배정된 부스 수를 알린다", async () => {
@@ -212,6 +310,13 @@ describe("실적 탭", () => {
     renderTab(<StatsTab event={EVENT} org={ORG} />);
     expect(await screen.findByTestId("stats")).toHaveTextContent("2:[가을 축제]_실적.xlsx");
   });
+  it("부스가 늘면 패널을 새로 시작해 새 부스도 합계에 넣는다", async () => {
+    const { queryClient } = renderTab(<StatsTab event={EVENT} org={ORG} />);
+    expect(await screen.findByTestId("stats")).toHaveAttribute("data-picked", "1,2");
+    vi.mocked(admin.listBooths).mockResolvedValue([booth(1), booth(2), booth(3)]);
+    await act(() => queryClient.invalidateQueries({ queryKey: adminKeys.booths(10) }));
+    await waitFor(() => expect(screen.getByTestId("stats")).toHaveAttribute("data-picked", "1,2,3"));
+  });
 });
 
 describe("링크·QR 탭", () => {
@@ -231,6 +336,7 @@ describe("링크·QR 탭", () => {
 
   it("QR 묶음: 소유 기관 slug 주소와 파일명", async () => {
     vi.mocked(buildQrZip).mockResolvedValue(new Blob(["zip"]));
+    vi.mocked(admin.getEvent).mockResolvedValue({ event: EVENT, org: { ...ORG, slug: "owner-slug" } });
     renderTab(<LinksTab event={EVENT} org={{ ...ORG, slug: "owner-slug" }} />);
     await userEvent.setup().click(await ready());
     await waitFor(() => expect(downloadBlob).toHaveBeenCalled());
@@ -264,6 +370,38 @@ describe("링크·QR 탭", () => {
     await userEvent.setup().click(await ready());
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("button", { name: /QR 묶음/ })).toBeEnabled());
+  });
+
+  it("내려받기 직전에 토큰·슬러그·행사 이름이 바뀌면 새 값이 파일에 들어간다", async () => {
+    vi.mocked(buildQrZip).mockResolvedValue(new Blob(["zip"]));
+    renderTab(<LinksTab event={EVENT} org={ORG} />);
+    const zip = await ready();
+    vi.mocked(admin.listBooths).mockResolvedValue([booth(1, { manage_token: "fresh-b" })]);
+    vi.mocked(admin.listPartners).mockResolvedValue([{ ...PARTNER, access_token: "fresh-p" }]);
+    vi.mocked(admin.getEvent).mockResolvedValue({ event: { ...EVENT, name: "겨울 축제" }, org: { ...ORG, slug: "fresh-slug" } });
+    await userEvent.setup().click(zip);
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalled());
+    const values = vi.mocked(buildQrZip).mock.calls[0][0].map((e) => e.value);
+    const o = window.location.origin;
+    expect(values).toEqual(expect.arrayContaining([`${o}/b/fresh-b`, `${o}/fresh-slug/reserve/1`, `${o}/p/fresh-p`]));
+    expect(values).not.toContain(`${o}/b/mt1`);
+    expect(values).not.toContain(`${o}/p/ptok`);
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe("[겨울 축제]_QR.zip");
+  });
+
+  it.each([
+    ["부스", () => vi.mocked(admin.listBooths)],
+    ["운영 단체", () => vi.mocked(admin.listPartners)],
+    ["행사", () => vi.mocked(admin.getEvent)],
+  ])("%s 재조회가 실패하면 내려받지 않고 오류를 보인다", async (_n, mock) => {
+    renderTab(<LinksTab event={EVENT} org={ORG} />);
+    const zip = await ready();
+    mock().mockRejectedValue(new ApiError(500, "server"));
+    await userEvent.setup().click(zip);
+    await waitFor(() => expect(screen.getAllByRole("alert").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getByRole("button", { name: /QR 묶음/ })).toBeEnabled());
+    expect(buildQrZip).not.toHaveBeenCalled();
+    expect(downloadBlob).not.toHaveBeenCalled();
   });
 
   it("링크 엑셀: 파일명", async () => {

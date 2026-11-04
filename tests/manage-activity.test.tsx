@@ -173,6 +173,15 @@ describe("기관 설정", () => {
     expect(screen.getByText(`${window.location.origin}/nareum`)).toBeInTheDocument();
   });
 
+  it("화면을 열면 계정 정보를 다시 받아 바뀐 주소를 보여 준다", async () => {
+    vi.mocked(admin.getMe)
+      .mockResolvedValueOnce(ME)
+      .mockResolvedValue({ ...ME, org: { ...ORG, slug: "new-slug" } });
+    renderRoute("/manage/org");
+    expect(await screen.findByText(`${window.location.origin}/new-slug`)).toBeInTheDocument();
+    expect(admin.getMe).toHaveBeenCalledTimes(2);
+  });
+
   it("로고를 올리면 계정 정보를 다시 받는다", async () => {
     vi.mocked(admin.uploadOrgLogo).mockResolvedValue({} as never);
     renderRoute("/manage/org");

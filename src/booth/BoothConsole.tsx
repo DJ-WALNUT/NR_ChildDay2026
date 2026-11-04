@@ -268,7 +268,7 @@ export default function BoothConsole({
         danger
         busy={remove.isPending}
         onConfirm={() => deleting && remove.mutate(deleting.id)}
-        onCancel={() => !remove.isPending && setDeleting(null)}
+        onCancel={() => setDeleting(null)}
       />
       <ConfirmDialog
         open={clearing}
@@ -278,7 +278,7 @@ export default function BoothConsole({
         danger
         busy={clear.isPending}
         onConfirm={() => clear.mutate()}
-        onCancel={() => !clear.isPending && setClearing(false)}
+        onCancel={() => setClearing(false)}
       />
     </div>
   );

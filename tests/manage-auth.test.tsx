@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ApiError } from "../src/api/client";
 import { adminKeys } from "../src/api/admin";
 import type { MeResponse, SessionOrg, SessionUser } from "../src/api/types";
+import { AuthProvider, useAuth } from "../src/manage/auth/AuthProvider";
 import { safeNext } from "../src/manage/auth/safeNext";
 import { routes } from "../src/routes";
 
@@ -256,6 +257,44 @@ describe("로그아웃과 세션 만료 시 캐시", () => {
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(queryClient.getQueryCache().getAll()).toEqual([]);
+  });
+});
+
+describe("로그아웃 없이 사용자가 바뀔 때", () => {
+  function Probe() {
+    const { user, refresh } = useAuth();
+    return <button onClick={() => void refresh()}>{user?.username ?? "없음"}</button>;
+  }
+
+  async function setup() {
+    const queryClient = new QueryClient();
+    const router = createMemoryRouter([{ path: "*", element: <AuthProvider><Probe /></AuthProvider> }]);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const button = await screen.findByRole("button", { name: "staff" });
+    queryClient.setQueryData(adminKeys.overview(1), { any: "thing" });
+    return { queryClient, button };
+  }
+
+  it("다른 사용자로 바뀌면 이전 계정의 캐시를 비운다", async () => {
+    vi.mocked(admin.getMe).mockResolvedValue(me());
+    const { queryClient, button } = await setup();
+    vi.mocked(admin.getMe).mockResolvedValue(me({ id: 8, username: "other" }));
+    await userEvent.setup().click(button);
+    expect(await screen.findByRole("button", { name: "other" })).toBeInTheDocument();
+    expect(queryClient.getQueryCache().getAll()).toEqual([]);
+  });
+
+  it("같은 사용자면 캐시를 그대로 둔다", async () => {
+    vi.mocked(admin.getMe).mockResolvedValue(me());
+    const { queryClient, button } = await setup();
+    vi.mocked(admin.getMe).mockResolvedValue(me({ display_name: "새 이름" }));
+    await userEvent.setup().click(button);
+    await waitFor(() => expect(admin.getMe).toHaveBeenCalledTimes(2));
+    expect(queryClient.getQueryData(adminKeys.overview(1))).toEqual({ any: "thing" });
   });
 });
 

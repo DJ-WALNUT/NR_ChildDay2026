@@ -30,7 +30,7 @@ export function LinkedOrgSelect({ value, onChange, targets, current, error }: {
 export function EditDialog({ partner, targets, onSave, onClose }: {
   partner: Partner;
   targets: Org[];
-  onSave: (body: { name: string; linked_org_id: number | null }) => Promise<void>;
+  onSave: (body: { name: string; linked_org_id?: number | null }) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName] = useState(partner.name);
@@ -45,7 +45,10 @@ export function EditDialog({ partner, targets, onSave, onClose }: {
     setError(null);
     setBusy(true);
     try {
-      await onSave({ name: name.trim(), linked_org_id: linked === NONE ? null : Number(linked) });
+      // 연결 기관은 바뀌었을 때만 보낸다. 서버는 보낸 값을 활성 기관인지 검사하므로 비활성 기관에 연결된 단체도 이름은 바꿀 수 있게 한다.
+      const next = linked === NONE ? null : Number(linked);
+      const changed = next !== (partner.linked_org?.id ?? null);
+      await onSave({ name: name.trim(), ...(changed && { linked_org_id: next }) });
       onClose();
     } catch (err) {
       const fields = fieldErrors(err);

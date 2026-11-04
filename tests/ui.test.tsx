@@ -39,6 +39,15 @@ describe("Stamp", () => {
 });
 
 describe("ConfirmDialog", () => {
+  it("처리 중이면 취소 버튼과 Esc 가 듣지 않는다", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    render(<ConfirmDialog open title="삭제할까요?" body="본문" confirmLabel="삭제" busy onConfirm={() => {}} onCancel={onCancel} />);
+    expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
   it("requireText 를 입력해야 확인할 수 있고 Esc 로 닫힌다", async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
@@ -243,6 +252,23 @@ describe("Button", () => {
 });
 
 describe("DataTable", () => {
+  it("scrollHint 를 켜면 좁은 화면에서만 보이는 안내를 표 위에 둔다", () => {
+    const table = (scrollHint?: boolean) => (
+      <DataTable scrollHint={scrollHint} columns={[{ key: "n", header: "이름" }]} rows={[{ n: "가" }]} rowKey={(r: { n: string }) => r.n} />
+    );
+    const { rerender } = render(table());
+    expect(screen.queryByText("옆으로 밀면 더 있어요")).toBeNull();
+    rerender(table(true));
+    const hint = screen.getByText("옆으로 밀면 더 있어요");
+    expect(hint).toHaveClass("sm:hidden", "text-13", "text-muted");
+    expect(hint.compareDocumentPosition(screen.getByRole("table")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("빈 표에는 scrollHint 안내가 없다", () => {
+    render(<DataTable scrollHint columns={[{ key: "n", header: "이름" }]} rows={[]} rowKey={(r: { n: string }) => r.n} empty={<p>없음</p>} />);
+    expect(screen.queryByText("옆으로 밀면 더 있어요")).toBeNull();
+  });
+
   it("rows 가 비면 empty 를 보여준다", () => {
     render(
       <DataTable

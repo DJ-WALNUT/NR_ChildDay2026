@@ -164,6 +164,7 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
       ) : (
         <DataTable
           caption="기관 계정 목록"
+          scrollHint
           columns={columns}
           rows={membersQ.data}
           rowKey={(m) => String(m.id)}
@@ -179,9 +180,7 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
         danger
         busy={reset.isPending}
         onConfirm={() => resetting && reset.mutate(resetting)}
-        onCancel={() => {
-          if (!reset.isPending) setResetting(null); // 이미 보낸 요청은 취소되지 않는다.
-        }}
+        onCancel={() => setResetting(null)}
       />
       {issued && <TempPasswordDialog key={issued.password} username={issued.username} password={issued.password} onClose={closeIssued} />}
     </div>

@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const here = useRef(location.pathname + location.search);
   here.current = location.pathname + location.search;
   const redirecting = useRef(false);
+  const lastUserId = useRef<number | null>(null);
   useEffect(() => {
     redirecting.current = false;
   }, [location.pathname]);
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCsrf(null);
     setUser(null);
     setOrg(null);
+    lastUserId.current = null;
     queryClient.clear();
   }, [queryClient]);
 
@@ -72,6 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (throwOnError: boolean) => {
       try {
         const me = await admin.getMe();
+        // 다른 탭에서 계정을 바꾸면 로그아웃 없이 사용자가 달라진다. 이전 계정의 캐시를 보이지 않게 비운다.
+        if (lastUserId.current !== null && lastUserId.current !== me.user.id) queryClient.clear();
+        lastUserId.current = me.user.id;
         setCsrf(me.csrf);
         setUser(me.user);
         setOrg(me.org);
@@ -89,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     },
-    [clear],
+    [clear, queryClient],
   );
 
   const refresh = useCallback(() => load(false), [load]);

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { removeOrgLogo, uploadOrgLogo } from "../api/admin";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useAuth } from "./auth/AuthProvider";
@@ -8,6 +9,10 @@ export default function OrgPage() {
   useDocumentTitle("기관 설정");
   const org = useOrg();
   const { refresh } = useAuth();
+  // 슈퍼관리자가 슬러그를 바꿔도 세션의 기관 정보는 그대로다. 주소를 보여 주는 화면이니 열 때 새로 받는다.
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
   return (
     <div className="space-y-6">
       <h1 className="text-22 font-extrabold tracking-[-0.03em]">기관 설정</h1>

@@ -10,6 +10,7 @@ import { useDocumentTitle } from "../../lib/useDocumentTitle";
 import { NotFound, Notice, Spinner, TabPanel, Tabs } from "../../ui";
 import { useAuth } from "../auth/AuthProvider";
 import { orgHomePath } from "../paths";
+import { RefetchNotice } from "../RefetchNotice";
 import BoothsTab from "./BoothsTab";
 import LinksTab from "./LinksTab";
 import PartnersTab from "./PartnersTab";
@@ -45,8 +46,8 @@ export default function EventPage() {
 
   if (id === null) return <NotFound />;
   if (q.isPending) return <Spinner />;
-  if (q.isError) {
-    if (q.error instanceof ApiError && q.error.status === 404) return <NotFound />;
+  if (q.isError && q.error instanceof ApiError && q.error.status === 404) return <NotFound />;
+  if (q.isError && !q.data) {
     return (
       <Notice tone="error" action={{ label: "다시 시도", onClick: () => void q.refetch() }}>
         {messageFor(q.error)}
@@ -68,6 +69,7 @@ export default function EventPage() {
         <p className="text-13 text-muted">{org.name}</p>
         <h1 className="text-22 font-extrabold tracking-[-0.03em]">{event.name}</h1>
       </div>
+      <RefetchNotice queries={[q]} />
       <Tabs
         idBase="event"
         items={TABS.map(({ id, label }) => ({ id, label }))}

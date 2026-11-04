@@ -78,6 +78,13 @@ describe("BulkImport", () => {
     expect(keys).toContainEqual(["admin", "event", 10]);
   });
 
+  it("고른 뒤 입력값을 비워 같은 파일을 다시 고를 수 있다", async () => {
+    const { upload } = setup();
+    await upload(await xlsx(THREE));
+    await screen.findByRole("region", { name: "등록할 부스" });
+    expect(screen.getByLabelText<HTMLInputElement>("엑셀 파일 선택").value).toBe("");
+  });
+
   it("문제가 있으면 등록 버튼이 잠긴다", async () => {
     const { upload } = setup();
     await upload(await xlsx([["가", "상시"]]));

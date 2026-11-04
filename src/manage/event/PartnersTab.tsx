@@ -18,6 +18,7 @@ import { downloadBlob } from "../../lib/download";
 import { safeFileName } from "../../lib/excel";
 import { renderQrPng } from "../../lib/qr";
 import { Button, ConfirmDialog, DataTable, EmptyState, Notice, Spinner, TextField, type Column } from "../../ui";
+import { RefetchNotice } from "../RefetchNotice";
 import type { EventTabProps } from "./EventPage";
 import { EditDialog, LinkedOrgSelect, NONE } from "./PartnerEdit";
 
@@ -160,7 +161,7 @@ export default function PartnersTab({ event, org }: EventTabProps) {
     },
   ];
 
-  const failed = [partnersQ, boothsQ].find((q) => q.isError);
+  const failed = [partnersQ, boothsQ].find((q) => q.isError && !q.data);
   if (failed) {
     return (
       <Notice tone="error" action={{ label: "다시 시도", onClick: () => void failed.refetch() }}>
@@ -173,9 +174,11 @@ export default function PartnersTab({ event, org }: EventTabProps) {
   return (
     <div className="space-y-8">
       {rowError && <Notice tone="error">{rowError}</Notice>}
+      <RefetchNotice queries={[partnersQ, boothsQ]} />
       <section className="space-y-3">
         <DataTable
           caption="운영 단체 목록"
+          scrollHint
           columns={partnerColumns}
           rows={partners}
           rowKey={(p) => String(p.id)}
