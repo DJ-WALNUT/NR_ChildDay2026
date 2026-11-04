@@ -11,6 +11,7 @@ import { EmptyState, NotFound, Notice, Spinner, TabPanel, Tabs } from "../../ui"
 import { useAuth } from "../auth/AuthProvider";
 import { orgHomePath } from "../paths";
 import BoothsTab from "./BoothsTab";
+import SettingsTab from "./SettingsTab";
 
 /** 탭 내용이 받는 값. org 는 getEvent 응답의 소유 기관이다(로그인 계정의 기관이 아니다). */
 export interface EventTabProps {
@@ -26,7 +27,7 @@ const TABS: { id: string; label: string; Component: ComponentType<EventTabProps>
   { id: "partners", label: "운영 단체", Component: NotReady },
   { id: "stats", label: "실적", Component: NotReady },
   { id: "links", label: "링크", Component: NotReady },
-  { id: "settings", label: "설정", Component: NotReady },
+  { id: "settings", label: "설정", Component: SettingsTab },
 ];
 
 export default function EventPage() {
