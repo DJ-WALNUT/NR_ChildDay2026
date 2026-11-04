@@ -93,8 +93,8 @@ function NewEventForm({ orgId }: { orgId: number }) {
 }
 
 /** 대시보드 본문. 내 기관 대시보드와 슈퍼관리자의 기관별 화면이 함께 쓴다. */
-export function DashboardBody({ orgId }: { orgId: number }) {
-  useDocumentTitle("대시보드");
+export function DashboardBody({ orgId, title = "대시보드" }: { orgId: number; title?: string }) {
+  useDocumentTitle(title);
   const q = useQuery({ queryKey: adminKeys.overview(orgId), queryFn: () => getOverview(orgId) });
 
   let body;
@@ -153,7 +153,7 @@ export function DashboardBody({ orgId }: { orgId: number }) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-22 font-extrabold tracking-[-0.03em]">대시보드</h1>
+      <h1 className="text-22 font-extrabold tracking-[-0.03em]">{title}</h1>
       {body}
     </div>
   );

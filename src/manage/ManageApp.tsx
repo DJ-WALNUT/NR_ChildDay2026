@@ -12,6 +12,9 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { RequireAuth, RequireOrg, RequireSuper } from "./auth/guards";
 import LoginPage from "./auth/LoginPage";
 import PasswordPage from "./auth/PasswordPage";
+import SuperOrgMembersPage from "./super/SuperOrgMembersPage";
+import SuperOrgPage from "./super/SuperOrgPage";
+import SuperPage from "./super/SuperPage";
 
 // routes.tsx 의 "/manage/*" 아래에서 그려지므로 경로는 /manage 기준 상대 경로다.
 // 이후 태스크는 아래에 경로를 더한다. events/:id, booths/:id 는 RequireOrg 밖(슈퍼관리자도 연다),
@@ -113,7 +116,31 @@ export default function ManageApp() {
             <RequireAuth>
               <RequireSuper>
                 <AdminLayout>
-                  <h1 className="text-22 font-extrabold tracking-[-0.03em]">전체 관리</h1>
+                  <SuperPage />
+                </AdminLayout>
+              </RequireSuper>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="super/orgs/:orgId"
+          element={
+            <RequireAuth>
+              <RequireSuper>
+                <AdminLayout>
+                  <SuperOrgPage />
+                </AdminLayout>
+              </RequireSuper>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="super/orgs/:orgId/members"
+          element={
+            <RequireAuth>
+              <RequireSuper>
+                <AdminLayout>
+                  <SuperOrgMembersPage />
                 </AdminLayout>
               </RequireSuper>
             </RequireAuth>
