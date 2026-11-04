@@ -158,17 +158,42 @@ describe("기관 계정 목록", () => {
     const { spy } = renderPanel();
     const u = userEvent.setup();
     await u.click(await screen.findByRole("button", { name: "helper 비활성화" }));
+    const dialog = await screen.findByRole("dialog", { name: "계정 비활성화" });
+    await u.click(within(dialog).getByRole("button", { name: "비활성화" }));
     await waitFor(() => expect(admin.updateMember).toHaveBeenCalledWith(8, { is_active: false }));
     await waitFor(() => expect(keysOf(spy)).toContain(JSON.stringify(adminKeys.members(1))));
     await u.click(screen.getByRole("button", { name: "old 활성화" }));
     await waitFor(() => expect(admin.updateMember).toHaveBeenCalledWith(9, { is_active: true }));
   });
 
+  it("비활성화는 세션이 끊긴다고 알리고, 취소하면 요청하지 않는다", async () => {
+    renderPanel();
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("button", { name: "helper 비활성화" }));
+    const dialog = await screen.findByRole("dialog", { name: "계정 비활성화" });
+    expect(dialog).toHaveTextContent("helper");
+    expect(dialog).toHaveTextContent("로그인 중인 기기에서 로그아웃돼요");
+    expect(dialog).toHaveTextContent("다시 활성화할 수 있어요");
+    await u.click(within(dialog).getByRole("button", { name: "취소" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(admin.updateMember).not.toHaveBeenCalled();
+  });
+
+  it("활성화는 확인 없이 바로 요청한다", async () => {
+    renderPanel();
+    await userEvent.setup().click(await screen.findByRole("button", { name: "old 활성화" }));
+    await waitFor(() => expect(admin.updateMember).toHaveBeenCalledWith(9, { is_active: true }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("마지막 활성 계정 409 는 문구로 보인다", async () => {
     vi.mocked(admin.updateMember).mockRejectedValue(new ApiError(409, "last_active_user"));
     renderPanel();
-    await userEvent.setup().click(await screen.findByRole("button", { name: "helper 비활성화" }));
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("button", { name: "helper 비활성화" }));
+    await u.click(within(await screen.findByRole("dialog", { name: "계정 비활성화" })).getByRole("button", { name: "비활성화" }));
     expect(await screen.findByText("마지막 활성 계정은 비활성화할 수 없어요.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
 
@@ -302,6 +327,17 @@ describe("처리 중 잠금", () => {
     expect(screen.getByRole("button", { name: "계정 발급" })).toBeDisabled();
     finish({ user: member(10), temp_password: TEMP });
     expect(await screen.findByRole("dialog", { name: /임시 비밀번호/ })).toBeInTheDocument();
+  });
+
+  it("발급 중에는 행의 비활성화 버튼도 잠긴다", async () => {
+    vi.mocked(admin.createMember).mockReturnValue(new Promise(() => {}));
+    renderPanel();
+    const u = userEvent.setup();
+    const button = await screen.findByRole("button", { name: "helper 비활성화" });
+    await u.type(screen.getByLabelText("아이디", { exact: false }), "newbie");
+    await u.type(screen.getByLabelText("표시 이름", { exact: false }), "새 사람");
+    await u.click(screen.getByRole("button", { name: "계정 발급" }));
+    await waitFor(() => expect(button).toBeDisabled());
   });
 
   it("초기화 중에는 발급 버튼이 잠긴다", async () => {

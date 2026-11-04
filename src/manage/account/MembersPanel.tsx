@@ -23,6 +23,7 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
   const [formError, setFormError] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
   const [resetting, setResetting] = useState<Member | null>(null);
+  const [deactivating, setDeactivating] = useState<Member | null>(null);
   // 임시 비밀번호는 쿼리·뮤테이션 캐시에 두지 않고 이 상태로만 들고 있다가 닫을 때 지운다.
   const [issued, setIssued] = useState<{ username: string; password: string } | null>(null);
 
@@ -61,8 +62,14 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
 
   const toggle = useMutation({
     mutationFn: (m: Member) => updateMember(m.id, { is_active: !m.is_active }),
-    onSuccess: () => void refresh(),
-    onError: (err) => setRowError(messageFor(err)),
+    onSuccess: () => {
+      setDeactivating(null);
+      void refresh();
+    },
+    onError: (err) => {
+      setDeactivating(null);
+      setRowError(messageFor(err));
+    },
   });
 
   // 발급·초기화 중에는 서로의 버튼을 잠가 두 요청이 겹치지 않는다. 그래서 임시 비밀번호가 보일 때는 진행 중인 요청이 없고 둘 다 비워도 안전하다.
@@ -101,10 +108,11 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
             <Button
               variant="secondary"
               aria-label={`${m.username} ${m.is_active ? "비활성화" : "활성화"}`}
-              disabled={toggle.isPending}
+              disabled={toggle.isPending || working}
               onClick={() => {
                 setRowError(null);
-                toggle.mutate(m);
+                if (m.is_active) setDeactivating(m);
+                else toggle.mutate(m);
               }}
             >
               {m.is_active ? "비활성화" : "활성화"}
@@ -181,6 +189,16 @@ export function MembersPanel({ orgId, selfId }: { orgId: number; selfId: number 
         busy={reset.isPending}
         onConfirm={() => resetting && reset.mutate(resetting)}
         onCancel={() => setResetting(null)}
+      />
+      <ConfirmDialog
+        open={deactivating !== null}
+        title="계정 비활성화"
+        body={`${deactivating?.username ?? ""} 계정은 로그인 중인 기기에서 로그아웃돼요. 다시 활성화할 수 있어요.`}
+        confirmLabel="비활성화"
+        danger
+        busy={toggle.isPending}
+        onConfirm={() => deactivating && toggle.mutate(deactivating)}
+        onCancel={() => setDeactivating(null)}
       />
       {issued && <TempPasswordDialog key={issued.password} username={issued.username} password={issued.password} onClose={closeIssued} />}
     </div>
