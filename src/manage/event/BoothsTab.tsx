@@ -5,6 +5,7 @@ import { adminKeys, batchBoothStatus, createBooth, listBooths } from "../../api/
 import { fieldErrors, messageFor } from "../../api/messages";
 import type { Booth } from "../../api/types";
 import { Button, DataTable, EmptyState, Notice, Spinner, Stamp, TextField, type Column } from "../../ui";
+import BulkImport from "./BulkImport";
 import type { EventTabProps } from "./EventPage";
 
 const MODE = { time: "시간대별", fcfs: "선착순" };
@@ -19,6 +20,7 @@ export default function BoothsTab({ event, org }: EventTabProps) {
   const [nameError, setNameError] = useState<string | undefined>();
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const booths = q.data ?? [];
   const selected = picked.filter((id) => booths.some((b) => b.id === id)); // 사라진 부스는 선택에서 뺀다.
@@ -157,8 +159,12 @@ export default function BoothsTab({ event, org }: EventTabProps) {
           <Button type="submit" loading={adding} className="mt-6">
             부스 추가
           </Button>
+          <Button variant="secondary" className="mt-6" onClick={() => setBulkOpen(true)}>
+            엑셀로 일괄 등록
+          </Button>
         </div>
       </form>
+      {bulkOpen && <BulkImport event={event} onClose={() => setBulkOpen(false)} />}
     </div>
   );
 }
