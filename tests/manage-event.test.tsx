@@ -230,7 +230,13 @@ describe("행사 화면", () => {
     expect(await screen.findByRole("heading", { name: "가을 축제" })).toBeInTheDocument();
     expect(screen.getByText("나름교회", { selector: "p" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /돌아가기/ })).toHaveAttribute("href", "/manage");
-    expect(admin.getEvent).toHaveBeenCalledWith("10");
+    expect(admin.getEvent).toHaveBeenCalledWith(10);
+  });
+
+  it("숫자가 아닌 행사 번호는 API 를 부르지 않고 찾을 수 없어요", async () => {
+    renderAt("/manage/events/abc");
+    expect(await screen.findByRole("heading", { name: "찾을 수 없어요" })).toBeInTheDocument();
+    expect(admin.getEvent).not.toHaveBeenCalled();
   });
 
   it("getEvent 가 404 면 찾을 수 없어요", async () => {
@@ -310,8 +316,10 @@ describe("부스 탭", () => {
     const u = userEvent.setup();
     await u.type(await screen.findByLabelText("부스 이름"), "새 부스");
     const calls = vi.mocked(admin.listBooths).mock.calls.length;
+    const eventCalls = vi.mocked(admin.getEvent).mock.calls.length;
     await u.click(screen.getByRole("button", { name: "부스 추가" }));
     await waitFor(() => expect(admin.createBooth).toHaveBeenCalledWith(10, { name: "새 부스" }));
+    await waitFor(() => expect(vi.mocked(admin.getEvent).mock.calls.length).toBeGreaterThan(eventCalls));
     await waitFor(() => expect(vi.mocked(admin.listBooths).mock.calls.length).toBeGreaterThan(calls));
     expect(screen.getByLabelText("부스 이름")).toHaveValue("");
   });

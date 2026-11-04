@@ -14,6 +14,9 @@ vi.mock("../src/api/admin", async (orig) => ({
   login: vi.fn(),
   logout: vi.fn(),
   changePassword: vi.fn(),
+  getOverview: vi.fn(),
+  getEvent: vi.fn(),
+  listBooths: vi.fn(),
 }));
 import * as admin from "../src/api/admin";
 
@@ -201,15 +204,57 @@ describe("로그아웃과 세션 만료 시 캐시", () => {
     expect(queryClient.getQueryCache().getAll()).toEqual([]);
   });
 
-  it("nr:unauthorized 이벤트가 오면 캐시를 비우고 next 를 붙여 로그인 화면으로 간다", async () => {
-    vi.mocked(admin.getMe).mockResolvedValue(me());
-    const { queryClient, where } = renderAt("/manage/account");
-    await screen.findByRole("main");
-    queryClient.setQueryData(adminKeys.overview(1), { any: "thing" });
-    act(() => {
-      window.dispatchEvent(new Event("nr:unauthorized"));
+  // 세션 만료 이벤트가 화면 커밋과 구독(passive effect) 사이에 끼어들면 쿼리가 비운 뒤에 다시 만들어진다.
+  // MutationObserver 는 커밋 직후, passive effect 전에 불러서 그 순간을 결정적으로 만든다.
+  function atCommit(text: string, fn: () => void) {
+    const mo = new MutationObserver(() => {
+      if (document.body.textContent?.includes(text)) {
+        mo.disconnect();
+        fn();
+      }
     });
-    await waitFor(() => expect(where()).toBe(`/manage/login?next=${encodeURIComponent("/manage/account")}`));
+    mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  const unauthorized = () => window.dispatchEvent(new Event("nr:unauthorized"));
+
+  it("쿼리 화면이 마운트된 채 nr:unauthorized 가 와도 캐시가 비고 next 가 붙는다", async () => {
+    vi.mocked(admin.getMe).mockResolvedValue(me());
+    vi.mocked(admin.getOverview).mockResolvedValue({
+      org: { id: 1, name: "나름교회", slug: "nareum" },
+      owned: [],
+      linked: [],
+      totals: { today: 0, total: 0, active_booths: 0, booths: 0 },
+    });
+    const { queryClient, where } = renderAt("/manage");
+    await screen.findByRole("heading", { name: "대시보드" });
+    await waitFor(() => expect(queryClient.getQueryCache().getAll()).toHaveLength(1));
+    act(unauthorized);
+    await waitFor(() => expect(where()).toBe(`/manage/login?next=${encodeURIComponent("/manage")}`));
+    expect(queryClient.getQueryCache().getAll()).toEqual([]);
+  });
+
+  it.each([
+    ["/manage", "체험부스 관리"],
+    ["/manage/events/10", "가을 축제"],
+  ])("%s: 커밋과 구독 사이에 만료돼도 비운 뒤 쿼리가 다시 남지 않는다", async (path, marker) => {
+    vi.mocked(admin.getMe).mockResolvedValue(me());
+    vi.mocked(admin.getOverview).mockResolvedValue({
+      org: { id: 1, name: "나름교회", slug: "nareum" },
+      owned: [],
+      linked: [],
+      totals: { today: 0, total: 0, active_booths: 0, booths: 0 },
+    });
+    vi.mocked(admin.getEvent).mockResolvedValue({
+      event: { id: 10, name: "가을 축제", created_at: 1, booth_count: 0, partner_count: 0, logo_url: null, notice: null },
+      org: ORG,
+    });
+    vi.mocked(admin.listBooths).mockResolvedValue([]);
+    const { queryClient, where } = renderAt(path);
+    atCommit(marker, unauthorized);
+    await waitFor(() => expect(where()).toContain("/manage/login"));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
     expect(queryClient.getQueryCache().getAll()).toEqual([]);
   });
 });

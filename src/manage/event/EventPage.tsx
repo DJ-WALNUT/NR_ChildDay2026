@@ -33,9 +33,16 @@ export default function EventPage() {
   const { eventId = "" } = useParams();
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
-  const q = useQuery({ queryKey: adminKeys.event(eventId), queryFn: () => getEvent(eventId) });
+  // 키와 요청 모두 숫자 id 로 맞춘다. 탭에서 adminKeys.event(event.id) 로 무효화하기 때문이다.
+  const id = /^[0-9]+$/.test(eventId) ? Number(eventId) : null;
+  const q = useQuery({
+    queryKey: adminKeys.event(id ?? 0),
+    queryFn: () => getEvent(id ?? 0),
+    enabled: id !== null,
+  });
   useDocumentTitle(q.data?.event.name);
 
+  if (id === null) return <NotFound />;
   if (q.isPending) return <Spinner />;
   if (q.isError) {
     if (q.error instanceof ApiError && q.error.status === 404) return <NotFound />;

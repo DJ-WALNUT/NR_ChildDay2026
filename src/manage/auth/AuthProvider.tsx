@@ -98,6 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void load(false);
   }, [load]);
 
+  // 위의 동기 clear 는 화면이 아직 마운트된 채라, 커밋과 passive effect 사이에 끼면 쿼리가 다시 만들어진다.
+  // 보호된 화면이 내려간 뒤(부모 effect 는 자식 정리 뒤에 돈다) 한 번 더 비운다.
+  useEffect(() => {
+    if (!user && !loading) queryClient.clear();
+  }, [user, loading, queryClient]);
+
   useEffect(() => {
     const onUnauthorized = () => {
       const path = here.current;
