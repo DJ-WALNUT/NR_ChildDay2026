@@ -213,3 +213,51 @@ describe("로그아웃과 세션 만료 시 캐시", () => {
     expect(queryClient.getQueryCache().getAll()).toEqual([]);
   });
 });
+
+describe("로그아웃 실패", () => {
+  async function openPasswordPage() {
+    vi.mocked(admin.getMe).mockResolvedValue(me({ must_change_password: true }));
+    const ctx = renderAt("/manage/password");
+    ctx.queryClient.setQueryData(adminKeys.overview(1), { any: "thing" });
+    const button = await screen.findByRole("button", { name: "로그아웃" });
+    return { ...ctx, click: () => userEvent.setup().click(button) };
+  }
+
+  it("네트워크 오류면 세션과 캐시를 그대로 두고 문구를 보여준다", async () => {
+    vi.mocked(admin.logout).mockRejectedValue(new ApiError(0, "network"));
+    const { queryClient, where, click } = await openPasswordPage();
+    await click();
+    expect(await screen.findByText("연결이 불안정해요. 잠시 뒤 다시 시도해 주세요.")).toBeInTheDocument();
+    expect(where()).toBe("/manage/password");
+    expect(screen.getByRole("heading", { name: "비밀번호 변경" })).toBeInTheDocument();
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(1);
+  });
+
+  it("401 이면 이미 로그아웃된 것이니 정리하고 로그인 화면으로 간다", async () => {
+    vi.mocked(admin.logout).mockRejectedValue(new ApiError(401, "unauthorized"));
+    const { queryClient, where, click } = await openPasswordPage();
+    await click();
+    await waitFor(() => expect(where()).toBe("/manage/login"));
+    expect(queryClient.getQueryCache().getAll()).toEqual([]);
+  });
+
+  it("403 csrf 면 getMe 로 새 토큰을 받고 한 번 다시 시도해 성공한다", async () => {
+    vi.mocked(admin.logout).mockRejectedValueOnce(new ApiError(403, "csrf")).mockResolvedValueOnce(undefined);
+    const { queryClient, where, click } = await openPasswordPage();
+    await click();
+    await waitFor(() => expect(where()).toBe("/manage/login"));
+    expect(admin.logout).toHaveBeenCalledTimes(2);
+    expect(admin.getMe).toHaveBeenCalledTimes(2);
+    expect(queryClient.getQueryCache().getAll()).toEqual([]);
+  });
+
+  it("403 csrf 재시도도 실패하면 세션을 그대로 두고 문구를 보여준다", async () => {
+    vi.mocked(admin.logout).mockRejectedValue(new ApiError(403, "csrf"));
+    const { queryClient, where, click } = await openPasswordPage();
+    await click();
+    expect(await screen.findByText("화면이 오래되었어요. 새로고침한 뒤 다시 시도해 주세요.")).toBeInTheDocument();
+    expect(admin.logout).toHaveBeenCalledTimes(2);
+    expect(where()).toBe("/manage/password");
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(1);
+  });
+});

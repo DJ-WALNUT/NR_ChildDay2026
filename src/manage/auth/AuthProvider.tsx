@@ -23,6 +23,7 @@ export type AuthValue = {
   /** 사용자가 직접 로그아웃했다. 세션 만료와 달리 돌아올 주소(next)를 남기지 않는다. */
   signedOut: boolean;
   login(username: string, password: string): Promise<void>;
+  /** 로그아웃이 확인될 때만 정리하고 이동한다. 실패하면 세션을 그대로 두고 reject 하므로 호출한 화면이 messageFor 로 알린다. */
   logout(): Promise<void>;
   refresh(): Promise<void>;
 };
@@ -119,15 +120,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    // 서버 세션이 지워졌다고 확인된 경우(204 또는 401)만 로그아웃으로 본다.
+    // 403 csrf 는 다른 탭이 로그인해 토큰이 낡은 경우일 수 있어 새 토큰을 받아 한 번만 다시 시도한다.
+    // 그 밖의 실패는 던져서 호출한 화면이 messageFor 로 알리게 하고, 세션 상태는 그대로 둔다.
+    const attempt = async () => {
+      try {
+        await admin.logout();
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) return;
+        throw err;
+      }
+    };
     try {
-      await admin.logout();
+      await attempt();
     } catch (err) {
-      console.warn("logout request failed", err);
-    } finally {
-      setSignedOut(true); // RequireAuth 가 현재 주소를 next 로 붙여 보내지 않게 한다.
-      clear();
-      navigate(LOGIN_PATH, { replace: true });
+      if (!(err instanceof ApiError && err.status === 403 && err.code === "csrf")) throw err;
+      try {
+        setCsrf((await admin.getMe()).csrf);
+      } catch (meErr) {
+        if (!(meErr instanceof ApiError && meErr.status === 401)) throw meErr;
+      }
+      await attempt();
     }
+    setSignedOut(true); // RequireAuth 가 현재 주소를 next 로 붙여 보내지 않게 한다.
+    clear();
+    navigate(LOGIN_PATH, { replace: true });
   }, [clear, navigate]);
 
   const value = useMemo(

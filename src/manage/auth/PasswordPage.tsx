@@ -38,6 +38,15 @@ export default function PasswordPage() {
     }
   }
 
+  async function signOut() {
+    setGeneral(null);
+    try {
+      await logout();
+    } catch (err) {
+      setGeneral(messageFor(err));
+    }
+  }
+
   return (
     <PageFrame surface="paper-2" width="narrow">
       <main>
@@ -79,7 +88,7 @@ export default function PasswordPage() {
             <Button type="submit" loading={busy} className="flex-1">
               비밀번호 바꾸기
             </Button>
-            <Button variant="secondary" onClick={() => void logout()}>
+            <Button variant="secondary" onClick={() => void signOut()}>
               로그아웃
             </Button>
           </div>
