@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { NotFound, PageFrame } from "../ui";
 import { AdminLayout } from "./AdminLayout";
+import BoothPage from "./booth/BoothPage";
 import DashboardPage from "./DashboardPage";
 import EventPage from "./event/EventPage";
 import { AuthProvider } from "./auth/AuthProvider";
@@ -42,6 +43,16 @@ export default function ManageApp() {
             <RequireAuth>
               <AdminLayout>
                 <EventPage />
+              </AdminLayout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="booths/:boothId"
+          element={
+            <RequireAuth>
+              <AdminLayout>
+                <BoothPage />
               </AdminLayout>
             </RequireAuth>
           }

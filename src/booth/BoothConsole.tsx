@@ -42,12 +42,15 @@ export default function BoothConsole({
   access,
   extraOwnActions,
   notFound,
+  header,
 }: {
   source: BoothSource;
   access: BoothAccess | ((d: BoothDetail) => BoothAccess);
   extraOwnActions?: ReactNode | ((d: BoothDetail) => ReactNode);
   /** 404 일 때 오류 대신 보여줄 화면 */
   notFound?: ReactNode;
+  /** 제목 위에 둘 내용(예: 돌아가기 링크). 부스를 불러온 뒤에만 그려요. */
+  header?: (d: BoothDetail) => ReactNode;
 }) {
   const qc = useQueryClient();
   const key = source.key;
@@ -183,6 +186,7 @@ export default function BoothConsole({
 
   return (
     <div className="space-y-6">
+      {header?.(q.data)}
       <header className="space-y-3">
         <p className="text-13 font-bold break-words text-muted">{booth.event_name}</p>
         <div className="flex flex-wrap items-center gap-3">
