@@ -65,7 +65,7 @@ const detail = (): BoothDetail => ({
     res(3, "이세나", "9999", "10시 A타임", "waiting"),
     res(4, "최하나", "1111", "11시 A타임", "completed"),
   ],
-  stats: { rows: [{ age_group: "초등 저학년", male: 0, female: 4, total: 4 }], male: 0, female: 4, total: 4 },
+  stats: { age_label: "연령대", rows: [{ age_group: "초등 저학년", male: 0, female: 4, total: 4 }], male: 0, female: 4, total: 4 },
 });
 
 function fakeSource(over: Partial<BoothSource> = {}): BoothSource {

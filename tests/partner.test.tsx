@@ -53,7 +53,7 @@ const payload = (booths: Booth[]): PartnerPayload => ({
   org: { name: "나름교회", slug: "nareum" },
   booths,
 });
-const stats: Stats = { rows: [{ age_group: "초등 저학년", male: 1, female: 2, total: 3 }], male: 1, female: 2, total: 3 };
+const stats: Stats = { age_label: "연령대", rows: [{ age_group: "초등 저학년", male: 1, female: 2, total: 3 }], male: 1, female: 2, total: 3 };
 const exported: ExportData = {
   booths: [{ booth_id: 12, event_name: "어린이날 행사", booth_name: "비누", rows: [] }],
 };
@@ -196,7 +196,7 @@ describe("StatsPanel", () => {
     renderAt("/p/tok");
     expect(await screen.findByText("신청 건수를 그대로 더해요.", {}, T)).toBeInTheDocument();
     await user.click(screen.getByRole("radio", { name: /엄격/ }));
-    expect(screen.getByText("이름·성별·연령이 같으면 1명으로 세요.")).toBeInTheDocument();
+    expect(screen.getByText("이름·성별·연령대 항목이 같으면 1명으로 세요.")).toBeInTheDocument();
   });
 
   it("부스 이름은 flex 줄 안에서 줄어들 수 있는 칸에 담긴다(공백 없는 긴 이름이 가로 스크롤을 만들지 않게)", async () => {
@@ -225,13 +225,13 @@ describe("StatsPanel", () => {
     let resolveOld!: (s: Stats) => void;
     vi.mocked(link.partnerStats)
       .mockImplementationOnce(() => new Promise<Stats>((r) => (resolveOld = r)))
-      .mockResolvedValue({ rows: [], male: 0, female: 0, total: 77 });
+      .mockResolvedValue({ age_label: "연령대", rows: [], male: 0, female: 0, total: 77 });
     renderAt("/p/tok");
     const group = await openPicker();
     await waitFor(() => expect(link.partnerStats).toHaveBeenCalledTimes(1));
     await user.click(within(group).getByRole("checkbox", { name: "팽이 돌리기" }));
     expect(await within(await screen.findByLabelText("합계")).findByText("77")).toBeInTheDocument();
-    resolveOld({ rows: [], male: 0, female: 0, total: 999 });
+    resolveOld({ age_label: "연령대", rows: [], male: 0, female: 0, total: 999 });
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText("999")).not.toBeInTheDocument();
     expect(within(screen.getByLabelText("합계")).getByText("77")).toBeInTheDocument();

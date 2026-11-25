@@ -57,7 +57,7 @@ const EVENT: AdminEvent = {
   booth_count: 2,
   partner_count: 1,
   logo_url: null,
-  notice: null,
+  notice: null, age_label: "연령대", age_options: ["0~8세", "9~13세"],
 };
 const PARTNER: Partner = { id: 5, name: "청년부", linked_org: { id: 2, name: "사랑교회" }, access_token: "ptok", booth_count: 2 };
 function booth(id: number, over: Partial<Booth> = {}): Booth {

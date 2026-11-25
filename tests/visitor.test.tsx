@@ -42,7 +42,7 @@ const orgPage: PublicOrgPage = {
 };
 const boothPage = (over: Partial<PublicBoothPage> = {}): PublicBoothPage => ({
   org,
-  event: { id: 1, name: "어린이날 행사", logo_url: null, notice: "비가 오면 실내에서 해요." },
+  event: { id: 1, name: "어린이날 행사", logo_url: null, notice: "비가 오면 실내에서 해요.", age_label: "연령대", age_options: ["0~8세", "9~13세"] },
   booth: { id: 12, name: "비누 만들기", mode: "time", use_waitlist: false, is_active: true },
   availability: {
     slots: [
@@ -600,4 +600,12 @@ describe("시간 선택 시간표", () => {
     expect(await screen.findByRole("radio", { name: /11시/ })).toHaveTextContent("남은 5자리");
     expect(screen.queryByText("숫자는 남은 자리예요")).not.toBeInTheDocument();
   });
+});
+
+it("신청 화면은 행사가 정한 항목 이름과 선택지를 보여 준다", async () => {
+  const page = boothPage();
+  m.getBoothPage.mockResolvedValue({ ...page, event: { ...page.event, age_label: "학년", age_options: ["초등", "중등"] } });
+  renderAt("/nareum/reserve/12");
+  const select = await screen.findByLabelText("학년");
+  expect([...select.querySelectorAll("option")].map((o) => o.textContent)).toEqual(["선택해 주세요", "초등", "중등"]);
 });

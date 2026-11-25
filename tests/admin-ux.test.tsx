@@ -5,7 +5,7 @@ import { RosterList } from "../src/booth/RosterList";
 import { StatsPanel } from "../src/booth/StatsPanel";
 import { StatsTable } from "../src/booth/StatsTable";
 
-const stats: Stats = {
+const stats: Stats = { age_label: "연령대",
   rows: [
     { age_group: "0~8세", male: 3, female: 1, total: 4 },
     { age_group: "9~13세", male: 2, female: 2, total: 4 },
@@ -41,7 +41,7 @@ describe("StatsTable", () => {
   });
 
   it("막대의 범례가 있고 신청이 없어도 0 으로 나누지 않는다", () => {
-    render(<StatsTable stats={{ rows: [{ age_group: "0~8세", male: 0, female: 0, total: 0 }], male: 0, female: 0, total: 0 }} />);
+    render(<StatsTable stats={{ age_label: "연령대", rows: [{ age_group: "0~8세", male: 0, female: 0, total: 0 }], male: 0, female: 0, total: 0 }} />);
     expect(screen.getByText("남", { selector: "li" })).toBeInTheDocument();
     expect(screen.getByText("여", { selector: "li" })).toBeInTheDocument();
     expect(screen.getAllByText("0%")).toHaveLength(2);

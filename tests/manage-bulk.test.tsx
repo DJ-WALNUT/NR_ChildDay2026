@@ -19,7 +19,7 @@ const EVENT: AdminEvent = {
   booth_count: 0,
   partner_count: 0,
   logo_url: null,
-  notice: null,
+  notice: null, age_label: "연령대", age_options: ["0~8세", "9~13세"],
 };
 
 async function xlsx(rows: (string | null)[][]): Promise<File> {

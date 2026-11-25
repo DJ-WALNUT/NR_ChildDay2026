@@ -7,14 +7,12 @@ const STATUS_LABEL: Record<ReservationStatus, string> = {
   completed: "체험완료",
 };
 
-const HEADERS = ["시간", "이름", "성별", "연령", "식별번호", "상태", "신청 시각"];
+const headers = (ageLabel: string) => ["시간", "이름", "성별", ageLabel, "식별번호", "상태", "신청 시각"];
 
 /** 합계 방식 이름과 설명. 화면(StatsPanel)과 엑셀 합계 시트가 같은 문구를 써요. */
 export const MODE_LABEL = { simple: "단순 합계", strict: "엄격 합계" } as const;
-export const MODE_NOTE = {
-  simple: "신청 건수를 그대로 더해요.",
-  strict: "이름·성별·연령이 같으면 1명으로 세요.",
-} as const;
+export const modeNote = (mode: "simple" | "strict", ageLabel: string) =>
+  mode === "simple" ? "신청 건수를 그대로 더해요." : `이름·성별·${ageLabel} 항목이 같으면 1명으로 세요.`;
 
 /** 엑셀 시트 이름: 금지 문자 제거, 31자 이하, 비면 "시트", 중복이면 " (2)"… */
 export function sheetName(raw: string, taken: Set<string>): string {
@@ -50,7 +48,7 @@ export async function buildRosterWorkbook(
   const taken = new Set<string>(["합계"]); // 합계 시트 이름을 먼저 확보
   for (const b of data.booths) {
     const ws = wb.addWorksheet(sheetName(b.booth_name, taken));
-    ws.addRow(HEADERS).font = { bold: true };
+    ws.addRow(headers(stats.age_label)).font = { bold: true };
     for (const r of b.rows) {
       ws.addRow([
         r.slot,
@@ -66,9 +64,9 @@ export async function buildRosterWorkbook(
     ws.getColumn(5).numFmt = "@";
   }
   const ws = wb.addWorksheet("합계");
-  ws.addRow([`${MODE_LABEL[opts.mode]} - ${MODE_NOTE[opts.mode]}`]).font = { bold: true };
-  ws.addRow(["연령대", "남", "여", "합계"]).font = { bold: true };
-  for (const r of stats.rows) ws.addRow([r.age_group, r.male, r.female, r.total]);
+  ws.addRow([`${MODE_LABEL[opts.mode]} - ${modeNote(opts.mode, stats.age_label)}`]).font = { bold: true };
+  ws.addRow([stats.age_label, "남", "여", "합계"]).font = { bold: true };
+  for (const r of stats.rows) ws.addRow([r.removed ? `${r.age_group} (이전 선택지)` : r.age_group, r.male, r.female, r.total]);
   ws.addRow(["전체 합계", stats.male, stats.female, stats.total]).font = { bold: true };
   ws.columns = [24, 8, 8, 8].map((width) => ({ width }));
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;

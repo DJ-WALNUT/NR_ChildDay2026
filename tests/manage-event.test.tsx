@@ -44,7 +44,7 @@ const EVENT: AdminEvent = {
   booth_count: 3,
   partner_count: 0,
   logo_url: null,
-  notice: null,
+  notice: null, age_label: "연령대", age_options: ["0~8세", "9~13세"],
 };
 function booth(id: number, over: Partial<Booth> = {}): Booth {
   return {

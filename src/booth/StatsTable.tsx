@@ -6,7 +6,7 @@ const percent = (n: number, total: number) => (total === 0 ? 0 : Math.round((n /
 const MALE = "rounded-sm bg-ink";
 const FEMALE = "rounded-sm border border-ink bg-ticket";
 
-/** 가장 많은 연령대를 꽉 찬 길이로 두고, 그 안을 남·여 비율로 나눈 막대. */
+/** 가장 많은 항목을 꽉 찬 길이로 두고, 그 안을 남·여 비율로 나눈 막대. */
 function Bar({ male, female, max }: { male: number; female: number; max: number }) {
   const total = male + female;
   if (total === 0) return null;
@@ -32,9 +32,9 @@ const HEAD = "whitespace-nowrap px-1 py-2 text-right text-13 font-bold sm:px-2";
 export function StatsTable({ stats }: { stats: Stats }) {
   const max = Math.max(0, ...stats.rows.map((r) => r.total));
   return (
-    <section aria-label="연령대별 통계" className="space-y-2">
+    <section aria-label={`${stats.age_label}별 통계`} className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-15 font-extrabold">연령대·성별 통계</h2>
+        <h2 className="text-15 font-extrabold">{stats.age_label}·성별 통계</h2>
         <ul className="flex gap-3 text-13 font-bold">
           <li className="flex items-center gap-1">
             <span aria-hidden className={`size-3 ${MALE}`} />남
@@ -45,11 +45,11 @@ export function StatsTable({ stats }: { stats: Stats }) {
         </ul>
       </div>
       <table className="w-full border-collapse text-15">
-        <caption className="sr-only">연령대·성별 통계</caption>
+        <caption className="sr-only">{stats.age_label}·성별 통계</caption>
         <thead>
           <tr className="border-b-2 border-ink">
-            <th scope="col" className="whitespace-nowrap py-2 pr-2 text-left text-13 font-bold">
-              연령대
+            <th scope="col" className="max-w-32 break-words py-2 pr-2 text-left text-13 font-bold sm:max-w-none">
+              {stats.age_label}
             </th>
             <th scope="col" className={HEAD}>
               남
@@ -71,8 +71,9 @@ export function StatsTable({ stats }: { stats: Stats }) {
         <tbody>
           {stats.rows.map((r) => (
             <tr key={r.age_group} className="border-b border-rule-2">
-              <th scope="row" className="whitespace-nowrap py-2 pr-2 text-left font-bold">
+              <th scope="row" className="max-w-32 break-words py-2 pr-2 text-left font-bold sm:max-w-none">
                 {r.age_group}
+                {r.removed && <span className="block text-13 font-normal text-muted">이전 선택지</span>}
               </th>
               <Num value={r.male} />
               <Num value={r.female} />

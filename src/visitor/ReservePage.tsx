@@ -17,8 +17,6 @@ import { QueryFailure, VisitorFrame } from "./BrandHeader";
 import { BigLink } from "./BigLink";
 import { TicketHeader } from "./TicketCard";
 
-const AGE_GROUPS = ["0~8세", "9~13세", "14~16세", "17~19세", "20~24세", "24세 이상"];
-
 type Errors = Partial<Record<"name" | "code" | "gender" | "age_group" | "slot" | "agree", string>>;
 
 // 화면에 보이는 순서대로 첫 오류 칸을 찾아 포커스한다.
@@ -50,7 +48,7 @@ export default function ReservePage() {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
-  const [age, setAge] = useState("");
+  const [ageChoice, setAge] = useState("");
   const [slot, setSlot] = useState<string | null>(null);
   const [agree, setAgree] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -69,6 +67,8 @@ export default function ReservePage() {
     );
   }
   const { org, event, booth, availability } = q.data;
+  // 작성 중에 주최 측이 선택지를 바꾸면 사라진 값은 다시 고르게 한다.
+  const age = event.age_options.includes(ageChoice) ? ageChoice : "";
   const isTime = booth.mode === "time" && isTimeAvailability(availability);
   const closed = !booth.is_active || availability.is_closed;
 
@@ -126,7 +126,7 @@ export default function ReservePage() {
     if (!n.ok) next.name = n.message;
     if (!c.ok) next.code = c.message;
     if (!gender) next.gender = "성별을 선택해 주세요.";
-    if (!age) next.age_group = "연령대를 선택해 주세요.";
+    if (!age) next.age_group = `${event.age_label} 항목을 선택해 주세요.`;
     if (isTime && !slot) next.slot = "시간을 선택해 주세요.";
     if (!agree) next.agree = "신청에 동의해 주세요.";
     setErrors(next);
@@ -164,6 +164,7 @@ export default function ReservePage() {
       setSubmitError({ err, who: { name: n.value, code: c.value } });
       const server = fieldErrors(err) as Errors;
       setErrors(server);
+      if (server.age_group) void q.refetch(); // 그사이 바뀐 선택지를 받아 온다
       focusFirstInvalid(formRef.current, server);
       if (err instanceof ApiError && err.status === 409 && (err.code === "full" || err.code === "closed")) {
         void q.refetch().then((r) => {
@@ -234,10 +235,10 @@ export default function ReservePage() {
           </div>
           <div data-field="age_group">
           <SelectField
-            label="연령대"
+            label={event.age_label}
             value={age}
             onChange={(e) => setAge(e.target.value)}
-            options={[{ value: "", label: "선택해 주세요" }, ...AGE_GROUPS.map((a) => ({ value: a, label: a }))]}
+            options={[{ value: "", label: "선택해 주세요" }, ...event.age_options.map((a) => ({ value: a, label: a }))]}
             error={errors.age_group}
           />
           </div>

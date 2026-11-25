@@ -3,7 +3,7 @@ import { ChevronDown, Download } from "lucide-react";
 import { messageFor } from "../api/messages";
 import type { Booth, ExportData, Stats, StatsMode } from "../api/types";
 import { downloadBlob } from "../lib/download";
-import { buildRosterWorkbook, MODE_LABEL, MODE_NOTE } from "../lib/excel";
+import { buildRosterWorkbook, MODE_LABEL, modeNote } from "../lib/excel";
 import { Button, Choice, Notice, Spinner, TextField, type ChoiceOption } from "../ui";
 import { StatsTable } from "./StatsTable";
 
@@ -114,7 +114,7 @@ export function StatsPanel({
     <section aria-label="실적" className="space-y-4">
       <div className="space-y-1">
         <Choice label="합계 방식" value={mode} onChange={setMode} options={MODES} />
-        <p className="text-13 text-muted">{MODE_NOTE[mode]}</p>
+        <p className="text-13 text-muted">{modeNote(mode, display?.age_label ?? "연령대")}</p>
       </div>
 
       <div aria-live="polite" aria-busy={ids.length > 0 && !current && !error}>

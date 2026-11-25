@@ -246,7 +246,7 @@ describe("로그아웃과 세션 만료 시 캐시", () => {
       totals: { today: 0, total: 0, active_booths: 0, booths: 0 },
     });
     vi.mocked(admin.getEvent).mockResolvedValue({
-      event: { id: 10, name: "가을 축제", created_at: 1, booth_count: 0, partner_count: 0, logo_url: null, notice: null },
+      event: { id: 10, name: "가을 축제", created_at: 1, booth_count: 0, partner_count: 0, logo_url: null, notice: null, age_label: "연령대", age_options: ["0~8세"] },
       org: ORG,
     });
     vi.mocked(admin.listBooths).mockResolvedValue([]);

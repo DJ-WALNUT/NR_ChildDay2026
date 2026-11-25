@@ -17,7 +17,7 @@ const data: ExportData = {
     { booth_id: 2, event_name: "어린이날", booth_name: "로봇 코딩", rows: [] },
   ],
 };
-const stats: Stats = {
+const stats: Stats = { age_label: "연령대",
   rows: [
     { age_group: "9~13세", male: 1, female: 0, total: 1 },
     { age_group: "4~8세", male: 0, female: 1, total: 1 },
@@ -39,14 +39,14 @@ describe("buildRosterWorkbook", () => {
     const wb = await load("simple");
     expect(wb.worksheets.map((w) => w.name)).toEqual(["페이스페인팅", "로봇 코딩", "합계"]);
     const ws = wb.worksheets[0];
-    expect(cells(ws, 1)).toEqual(["시간", "이름", "성별", "연령", "식별번호", "상태", "신청 시각"]);
+    expect(cells(ws, 1)).toEqual(["시간", "이름", "성별", "연령대", "식별번호", "상태", "신청 시각"]);
     expect(cells(ws, 2)).toEqual(["11시 A타임", "홍길동", "남", "9~13세", "1234", "입장 가능", "2026-05-05 09:00"]);
     expect(cells(ws, 3)).toEqual(["11시 B타임", "김영희", "여", "4~8세", "0042", "노쇼", "2026-05-06 00:30"]);
   });
   it("합계 시트", async () => {
     const wb = await load("strict");
     const ws = wb.getWorksheet("합계")!;
-    expect(ws.getCell("A1").value).toBe("엄격 합계 - 이름·성별·연령이 같으면 1명으로 세요.");
+    expect(ws.getCell("A1").value).toBe("엄격 합계 - 이름·성별·연령대 항목이 같으면 1명으로 세요.");
     expect(ws.getRow(ws.rowCount).getCell(4).value).toBe(stats.total);
     expect((await load("simple")).getWorksheet("합계")!.getCell("A1").value).toBe("단순 합계 - 신청 건수를 그대로 더해요.");
   });
@@ -141,4 +141,15 @@ describe("링크 시트", () => {
   it("safeFileName 은 금지 문자를 뺀다", () => {
     expect(safeFileName(" a/b:c ")).toBe("abc");
   });
+});
+
+it("행사가 정한 항목 이름과 이전 선택지를 쓴다", async () => {
+  const wb = new ExcelJS.Workbook();
+  const s: Stats = { age_label: "학년", rows: [{ age_group: "9~13세", male: 1, female: 0, total: 1, removed: true }], male: 1, female: 0, total: 1 };
+  await wb.xlsx.load(await buildRosterWorkbook(data, s, { mode: "strict" }));
+  expect(wb.worksheets[0].getCell("D1").value).toBe("학년");
+  const sum = wb.getWorksheet("합계")!;
+  expect(sum.getCell("A1").value).toBe("엄격 합계 - 이름·성별·학년 항목이 같으면 1명으로 세요.");
+  expect(sum.getCell("A2").value).toBe("학년");
+  expect(sum.getCell("A3").value).toBe("9~13세 (이전 선택지)");
 });

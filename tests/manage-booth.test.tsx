@@ -68,7 +68,7 @@ function booth(over: Partial<Booth> = {}): Booth {
     ...over,
   };
 }
-const STATS: Stats = { rows: [], male: 0, female: 0, total: 0 };
+const STATS: Stats = { age_label: "연령대", rows: [], male: 0, female: 0, total: 0 };
 const ev = (id: number, name: string): AdminEvent => ({
   id,
   name,
@@ -77,6 +77,8 @@ const ev = (id: number, name: string): AdminEvent => ({
   partner_count: 0,
   logo_url: null,
   notice: null,
+  age_label: "연령대",
+  age_options: ["0~8세"],
 });
 const PARTNERS: Partner[] = [
   { id: 3, name: "청년부", linked_org: null, access_token: "p3", booth_count: 0 },

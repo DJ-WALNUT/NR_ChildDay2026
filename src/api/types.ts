@@ -50,7 +50,15 @@ export interface PublicOrgPage {
 
 export interface PublicBoothPage {
   org: PublicOrg;
-  event: { id: number; name: string; logo_url: string | null; notice: string | null };
+  event: {
+    id: number;
+    name: string;
+    logo_url: string | null;
+    notice: string | null;
+    /** 행사가 정한 연령대 항목 이름과 선택지 */
+    age_label: string;
+    age_options: string[];
+  };
   booth: { id: number; name: string; mode: BoothMode; use_waitlist: boolean; is_active: boolean };
   availability: Availability;
 }
@@ -131,8 +139,11 @@ export interface StatsRow {
   male: number;
   female: number;
   total: number;
+  /** 지금 선택지 목록에는 없지만 신청이 남아 있는 값 */
+  removed?: boolean;
 }
 export interface Stats {
+  age_label: string;
   rows: StatsRow[];
   male: number;
   female: number;
@@ -214,6 +225,8 @@ export interface AdminEvent {
   partner_count: number;
   logo_url: string | null;
   notice: string | null;
+  age_label: string;
+  age_options: string[];
 }
 export interface Partner {
   id: number;

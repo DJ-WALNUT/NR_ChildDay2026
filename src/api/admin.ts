@@ -76,7 +76,10 @@ export const getEvent = (id: number | string) =>
   api<{ event: AdminEvent; org: SessionOrg }>("GET", `${A}/events/${id}`);
 export const createEvent = async (orgId: number, name: string) =>
   (await api<{ event: AdminEvent }>("POST", `${A}/orgs/${orgId}/events`, { name })).event;
-export const updateEvent = async (id: number, body: { name?: string; notice?: string | null }) =>
+export const updateEvent = async (
+  id: number,
+  body: { name?: string; notice?: string | null; age_label?: string; age_options?: string[] },
+) =>
   (await api<{ event: AdminEvent }>("PATCH", `${A}/events/${id}`, body)).event;
 export const deleteEvent = (id: number) => api<void>("DELETE", `${A}/events/${id}`);
 export const uploadEventLogo = (id: number, file: File | Blob) =>

@@ -11,12 +11,21 @@ import type { EventTabProps } from "./EventPage";
 
 const NOTICE_MAX = 500;
 
+/** 한 줄에 하나씩 쓴 선택지. 빈 줄은 뺀다. */
+const parseOptions = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
 function Settings({ event, org }: EventTabProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [name, setName] = useState(event.name);
   const [notice, setNotice] = useState(event.notice ?? "");
+  const [ageLabel, setAgeLabel] = useState(event.age_label);
+  const [ageText, setAgeText] = useState(event.age_options.join("\n"));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -37,8 +46,15 @@ function Settings({ event, org }: EventTabProps) {
     setSaveError(null);
     setSaved(false);
     setSaving(true);
+    const label = ageLabel.trim();
+    const options = parseOptions(ageText);
     try {
-      await updateEvent(event.id, { name: name.trim(), notice: notice.trim() === "" ? null : notice });
+      await updateEvent(event.id, {
+        name: name.trim(),
+        notice: notice.trim() === "" ? null : notice,
+        ...(label !== event.age_label && { age_label: label }),
+        ...(options.join("\n") !== event.age_options.join("\n") && { age_options: options }),
+      });
       await refresh();
       setSaved(true);
     } catch (err) {
@@ -83,6 +99,23 @@ function Settings({ event, org }: EventTabProps) {
         <p className="text-right text-13 tabular-nums text-muted">
           {notice.length}/{NOTICE_MAX}
         </p>
+        <TextField
+          label="연령대 항목 이름"
+          value={ageLabel}
+          maxLength={20}
+          onChange={(e) => setAgeLabel(e.target.value)}
+          error={errors.age_label}
+          hint="신청 화면, 실적, 엑셀에 이 이름으로 보여요. 예: 학년, 소속"
+        />
+        <TextAreaField
+          label="연령대 선택지"
+          value={ageText}
+          style={{ height: "auto" }}
+          rows={8}
+          onChange={(e) => setAgeText(e.target.value)}
+          error={errors.age_options}
+          hint="한 줄에 하나씩 써 주세요. 이미 받은 신청의 값은 바뀌지 않고, 고치거나 뺀 선택지는 실적에 '이전 선택지'로 따로 보여요."
+        />
         {saveError && <Notice tone="error">{saveError}</Notice>}
         {saved && <Notice tone="info">저장했어요.</Notice>}
         <Button type="submit" loading={saving} disabled={tooLong}>

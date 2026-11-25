@@ -41,7 +41,7 @@ const EVENT: AdminEvent = {
   booth_count: 3,
   partner_count: 0,
   logo_url: null,
-  notice: null,
+  notice: null, age_label: "연령대", age_options: ["0~8세", "9~13세"],
 };
 
 function renderAt(path: string) {
@@ -161,6 +161,24 @@ describe("행사 설정 탭", () => {
     await u.clear(screen.getByLabelText("안내 문구"));
     await u.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(admin.updateEvent).toHaveBeenLastCalledWith(10, { name: "봄 축제", notice: null }));
+  });
+
+  it("연령대 이름과 선택지를 바꾸면 함께 보낸다", async () => {
+    vi.mocked(admin.updateEvent).mockResolvedValue(EVENT);
+    renderAt(url);
+    const u = userEvent.setup();
+    const label = await screen.findByLabelText("연령대 항목 이름");
+    const options = screen.getByLabelText("연령대 선택지");
+    expect(options).toHaveValue("0~8세\n9~13세");
+    await u.clear(label);
+    await u.type(label, "학년");
+    await u.clear(options);
+    await u.click(options);
+    await u.paste(" 초등 \n\n중등\n");
+    await u.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() =>
+      expect(admin.updateEvent).toHaveBeenCalledWith(10, { name: "가을 축제", notice: null, age_label: "학년", age_options: ["초등", "중등"] }),
+    );
   });
 
   it("501자는 저장할 수 없다", async () => {
